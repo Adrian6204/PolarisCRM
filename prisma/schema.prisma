@@ -39,3 +39,58 @@ model User {
   @@index([role])
   @@map("users")
 }
+
+// --- Clients & Contacts (Phase 1) -----------------------------------------
+
+enum ClientStatus {
+  active
+  past
+  prospect
+}
+
+enum ContactRole {
+  decision_maker
+  technical_poc
+  billing
+  other
+}
+
+model Client {
+  id        String       @id @default(cuid())
+  name      String
+  industry  String?
+  website   String?
+  status    ClientStatus @default(prospect)
+  // Soft delete — an agency CRM where records vanish is a support headache.
+  // All app-level reads must filter `deletedAt: null`; see clientService.
+  deletedAt DateTime?    @map("deleted_at")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  contacts Contact[]
+
+  // status is frequently filtered in list views; deletedAt gates every read.
+  @@index([status])
+  @@index([deletedAt])
+  @@map("clients")
+}
+
+model Contact {
+  id        String      @id @default(cuid())
+  clientId  String      @map("client_id")
+  name      String
+  email     String
+  phone     String?
+  role      ContactRole @default(other)
+  isPrimary Boolean     @default(false) @map("is_primary")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  // Contacts are hard-deleted with their client (cascade); the SPEC scopes
+  // soft delete to Client/Project/Deliverable only.
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // FK index (SPEC: index FKs as tables are created, not retrofitted).
+  @@index([clientId])
+  @@map("contacts")
+}

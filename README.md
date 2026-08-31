@@ -57,8 +57,8 @@ These cross-cutting patterns apply to **every** API route (see SPEC):
 
 Built one phase at a time (commit per phase). Current status:
 
-- [x] **Phase 0** — Infra scaffolding (this commit)
-- [ ] Phase 1 — Clients & Contacts
+- [x] **Phase 0** — Infra scaffolding
+- [x] **Phase 1** — Clients & Contacts (CRUD, soft delete, nested contacts)
 - [ ] Phase 2 — Projects
 - [ ] Phase 3 — Deliverables
 - [ ] Phase 4 — Activity Log
