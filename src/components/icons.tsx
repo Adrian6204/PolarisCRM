@@ -52,6 +52,17 @@ export function IconDeliverables({ className }: IconProps) {
   );
 }
 
+export function IconAnalytics({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 4v15a1 1 0 0 0 1 1h15" />
+      <rect x="7.5" y="11" width="2.6" height="5.5" rx="0.6" />
+      <rect x="12" y="7.5" width="2.6" height="9" rx="0.6" />
+      <rect x="16.5" y="9.5" width="2.6" height="7" rx="0.6" />
+    </svg>
+  );
+}
+
 export function IconPipeline({ className }: IconProps) {
   return (
     <svg {...base} className={className}>

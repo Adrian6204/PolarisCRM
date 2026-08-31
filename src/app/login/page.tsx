@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PolarisMark } from "@/components/brand";
+import { BrandLockup } from "@/components/brand";
 
 /**
  * Credentials sign-in (NextAuth). First impression + first authenticated UI.
@@ -36,12 +36,8 @@ function LoginForm() {
   return (
     <main className="grid min-h-screen place-items-center px-6 py-12" style={{ backgroundColor: "var(--surface)" }}>
       <div className="w-full max-w-sm animate-rise">
-        <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <div className="flex items-center gap-2.5">
-            <PolarisMark className="h-8 w-8" />
-            <span className="text-xl font-bold tracking-tight">Polaris</span>
-            <span className="text-xl font-medium tracking-tight text-muted">CRM</span>
-          </div>
+        <div className="mb-7 flex flex-col items-center gap-4 text-center">
+          <BrandLockup className="h-auto w-64" />
           <p className="text-sm text-muted">Sign in to your workspace</p>
         </div>
 

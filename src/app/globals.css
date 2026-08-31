@@ -10,17 +10,17 @@
 @layer base {
   :root {
     --bg: #ffffff;
-    --surface: #f8fafc;
-    --surface-2: #f1f5f9;
-    --border: #e2e8f0;
-    --border-strong: #cbd5e1;
-    --text: #0f172a;
-    --muted: #5b6472;
-    --primary: #3b5bf5;
-    --primary-hover: #2f49d0;
+    --surface: #f7f7f8;
+    --surface-2: #efeff1;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --text: #18181b;
+    --muted: #52525b;
+    --primary: #18181b;
+    --primary-hover: #000000;
     --on-primary: #ffffff;
-    --link: #2f49d0;
-    --ring: #3b5bf5;
+    --link: #18181b;
+    --ring: #18181b;
 
     --radius-sm: 6px;
     --radius-md: 8px;
@@ -34,18 +34,18 @@
   }
 
   :root[data-theme="dark"] {
-    --bg: #0a0e17;
-    --surface: #111726;
-    --surface-2: #161d2f;
-    --border: #263041;
-    --border-strong: #34405a;
-    --text: #e7eaf0;
-    --muted: #98a1b4;
-    --primary: #6d86ff;
-    --primary-hover: #5b74e8;
-    --on-primary: #0a0e17;
-    --link: #8ea3ff;
-    --ring: #6d86ff;
+    --bg: #0a0a0b;
+    --surface: #141416;
+    --surface-2: #1c1c1f;
+    --border: #29292e;
+    --border-strong: #3a3a40;
+    --text: #f4f4f5;
+    --muted: #a1a1aa;
+    --primary: #fafafa;
+    --primary-hover: #e4e4e7;
+    --on-primary: #0a0a0b;
+    --link: #fafafa;
+    --ring: #d4d4d8;
 
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
     --shadow-md: 0 2px 4px rgb(0 0 0 / 0.35), 0 8px 24px rgb(0 0 0 / 0.45);
@@ -56,21 +56,62 @@
   /* Follow the OS when the user hasn't explicitly chosen a theme. */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0a0e17;
-      --surface: #111726;
-      --surface-2: #161d2f;
-      --border: #263041;
-      --border-strong: #34405a;
-      --text: #e7eaf0;
-      --muted: #98a1b4;
-      --primary: #6d86ff;
-      --primary-hover: #5b74e8;
-      --on-primary: #0a0e17;
-      --link: #8ea3ff;
-      --ring: #6d86ff;
+      --bg: #0a0a0b;
+      --surface: #141416;
+      --surface-2: #1c1c1f;
+      --border: #29292e;
+      --border-strong: #3a3a40;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --primary: #fafafa;
+      --primary-hover: #e4e4e7;
+      --on-primary: #0a0a0b;
+      --link: #fafafa;
+      --ring: #d4d4d8;
       --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
       --shadow-md: 0 2px 4px rgb(0 0 0 / 0.35), 0 8px 24px rgb(0 0 0 / 0.45);
       color-scheme: dark;
+    }
+  }
+
+  /* Chart tokens (dataviz). Monochrome design → differentiate by LIGHTNESS, not
+     hue, which is the strongest colourblind-safe channel. `--chart-s1..s4` is a
+     single-hue sequential ramp (dimmest→strongest). Status hues are reserved
+     for good/bad/warn only and always ship with a label. SVG `fill` reads these
+     vars directly, so charts follow the theme with no JS. */
+  :root {
+    --chart-ink: #18181b;
+    --chart-s1: #d4d4d8;
+    --chart-s2: #a1a1aa;
+    --chart-s3: #52525b;
+    --chart-s4: #18181b;
+    --chart-grid: #ececee;
+    --chart-good: #16a34a;
+    --chart-bad: #dc2626;
+    --chart-warn: #d97706;
+  }
+  :root[data-theme="dark"] {
+    --chart-ink: #fafafa;
+    --chart-s1: #3f3f46;
+    --chart-s2: #71717a;
+    --chart-s3: #a1a1aa;
+    --chart-s4: #fafafa;
+    --chart-grid: #232327;
+    --chart-good: #22c55e;
+    --chart-bad: #f87171;
+    --chart-warn: #fbbf24;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --chart-ink: #fafafa;
+      --chart-s1: #3f3f46;
+      --chart-s2: #71717a;
+      --chart-s3: #a1a1aa;
+      --chart-s4: #fafafa;
+      --chart-grid: #232327;
+      --chart-good: #22c55e;
+      --chart-bad: #f87171;
+      --chart-warn: #fbbf24;
     }
   }
 
@@ -109,6 +150,40 @@
   /* Tabular figures everywhere numbers matter. */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Native <select>: keep the closed control themed AND force the popped-open
+     option list to a legible, solid, theme-matched surface. Browsers render the
+     option list natively, so without this it falls back to a near-black-on-dark
+     mess in dark mode. */
+  select {
+    color: var(--text);
+    background-color: var(--bg);
+  }
+  select.bg-transparent {
+    background-color: transparent;
+  }
+  option,
+  optgroup {
+    background-color: var(--surface);
+    color: var(--text);
+  }
+
+  /* Brand lockup is a black-on-white PNG. Blend its white ground into the
+     surface (multiply) in light; invert to white-on-black then blend (screen)
+     in dark — so it sits seamlessly on either theme with no logo box. */
+  .brand-logo {
+    mix-blend-mode: multiply;
+  }
+  :root[data-theme="dark"] .brand-logo {
+    filter: invert(1);
+    mix-blend-mode: screen;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .brand-logo {
+      filter: invert(1);
+      mix-blend-mode: screen;
+    }
   }
 }
 

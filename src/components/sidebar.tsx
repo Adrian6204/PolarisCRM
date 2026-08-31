@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PolarisMark } from "./brand";
+import { BrandLockup } from "./brand";
 import {
   IconDashboard,
   IconClients,
   IconProjects,
   IconDeliverables,
   IconPipeline,
+  IconAnalytics,
 } from "./icons";
 
 const NAV = [
@@ -17,6 +18,7 @@ const NAV = [
   { href: "/projects", label: "Projects", icon: IconProjects },
   { href: "/deliverables", label: "Deliverables", icon: IconDeliverables },
   { href: "/pipeline", label: "Pipeline", icon: IconPipeline },
+  { href: "/analytics", label: "Analytics", icon: IconAnalytics },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -28,13 +30,8 @@ export function Sidebar() {
   const pathname = usePathname();
   return (
     <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-line bg-surface lg:flex">
-      <Link
-        href="/dashboard"
-        className="flex items-center gap-2.5 px-5 py-5"
-      >
-        <PolarisMark className="h-6 w-6" />
-        <span className="text-[15px] font-bold tracking-tight">Polaris</span>
-        <span className="text-[15px] font-medium tracking-tight text-muted">CRM</span>
+      <Link href="/dashboard" className="flex items-center px-5 py-5">
+        <BrandLockup className="h-auto w-44" />
       </Link>
 
       <nav className="flex flex-1 flex-col gap-0.5 px-3 py-2">

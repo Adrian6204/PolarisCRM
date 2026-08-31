@@ -1,5 +1,5 @@
 import { Sidebar, MobileNav } from "./sidebar";
-import { PolarisMark } from "./brand";
+import { BrandLockup } from "./brand";
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 
@@ -17,9 +17,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           style={{ backgroundColor: "color-mix(in srgb, var(--bg) 82%, transparent)" }}
         >
           <div className="flex h-14 items-center justify-between px-5">
-            <div className="flex items-center gap-2 lg:hidden">
-              <PolarisMark className="h-5 w-5" />
-              <span className="text-sm font-bold tracking-tight">Polaris</span>
+            <div className="lg:hidden">
+              <BrandLockup className="h-7 w-auto" />
             </div>
             <div className="hidden lg:block" />
             <div className="flex items-center gap-1">

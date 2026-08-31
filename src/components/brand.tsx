@@ -1,6 +1,24 @@
+/* eslint-disable @next/next/no-img-element */
+
 /**
- * Polaris mark — a geometric four-point "north star" built from SVG primitives
- * in the brand accent (cold-start constructed identity, not a letter in a box).
+ * The real Polaris Dev brand lockup (chrome mark + wordmark). It's a black-on-
+ * white PNG; the `.brand-logo` class blends its ground into the surface so it
+ * reads correctly on both light and dark without a logo box.
+ */
+export function BrandLockup({ className = "" }: { className?: string }) {
+  return (
+    <img
+      src="/brand/polaris-lockup.png"
+      alt="Polaris Dev"
+      className={`brand-logo select-none ${className}`}
+      draggable={false}
+    />
+  );
+}
+
+/**
+ * Polaris mark — a geometric four-point "north star" built from SVG primitives.
+ * Kept as a lightweight fallback / favicon-style mark.
  */
 export function PolarisMark({ className = "" }: { className?: string }) {
   return (

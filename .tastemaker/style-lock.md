@@ -11,18 +11,19 @@ scroll-storytelling, no marketing hero, no Step 2.5 macrostructure rotation.
 
 ## Direction
 Refined professional data tool (Linear / Vercel dashboard / Height lane).
-Deep-ink neutrals + ONE confident flat "north-star" cobalt accent, used
-sparingly (primary actions, active nav, focus rings). Deliberately avoids the
-AI-slop tells: no indigo→purple gradient, no gradient text, no glow, no emoji
-nav icons. Medium density, generous section rhythm, restrained motion.
+MONOCHROME to match the Polaris Dev brand (black wordmark + chrome mark): neutral
+black/white, no blue. Accent = near-black in light, near-white in dark (used for
+primary actions, active nav, focus rings). Avoids AI-slop tells: no gradients,
+no gradient text, no glow, no emoji nav icons. Restrained motion.
 
-## Color contract
-Light: bg #ffffff · surface #f8fafc · surface-2 #f1f5f9 · border #e2e8f0 ·
-text #0f172a · muted #5b6472 · primary #3b5bf5 · primary-hover #2f49d0 ·
-on-primary #ffffff · link #2f49d0
-Dark:  bg #0a0e17 · surface #111726 · surface-2 #161d2f · border #263041 ·
-text #e7eaf0 · muted #98a1b4 · primary #6d86ff · primary-hover #5b74e8 ·
-on-primary #0a0e17 · link #8ea3ff
+## Color contract (monochrome — updated per brand)
+Light: bg #ffffff · surface #f7f7f8 · surface-2 #efeff1 · border #e4e4e7 ·
+text #18181b · muted #52525b · primary #18181b · primary-hover #000000 ·
+on-primary #ffffff · link #18181b
+Dark:  bg #0a0a0b · surface #141416 · surface-2 #1c1c1f · border #29292e ·
+text #f4f4f5 · muted #a1a1aa · primary #fafafa · primary-hover #e4e4e7 ·
+on-primary #0a0a0b · link #fafafa
+All text/UI pairings ≥ 7:1 (verified node WCAG). No blue anywhere.
 
 Verified text-safe (≥4.5): text/bg, muted/bg, muted/surface, on-primary/primary,
 link/bg — both modes. Borders are decorative separators (not state-bearing).
@@ -42,8 +43,11 @@ Spacing: 4px base scale. Card internal padding ≥ 16px, ≤ gap to neighbors.
 Section rhythm on pages: 32px between major sections.
 
 ## Identity
-Polaris star mark: geometric 4-point sparkle built from SVG primitives in the
-accent color (cold-start constructed mark, not a letter-in-a-box). Inline SVG.
+Real brand logo supplied by user: chrome 4-point star mark + "POLARIS DEV"
+wordmark (black-on-white PNG at public/brand/polaris-lockup.png). Rendered via
+`.brand-logo` blend (multiply in light, invert+screen in dark) so it sits
+seamlessly on either theme with no logo box. Used in sidebar, mobile topbar,
+login. SVG PolarisMark kept as fallback.
 
 ## Shell
 Left sidebar (brand + icon nav + active state) on desktop, collapses to a top
