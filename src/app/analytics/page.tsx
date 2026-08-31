@@ -10,23 +10,32 @@ import { StatTile, ChartCard, CompositionBar } from "./parts";
 export const dynamic = "force-dynamic";
 
 const RAMP = ["var(--chart-s1)", "var(--chart-s2)", "var(--chart-s3)", "var(--chart-s4)"];
+// Categorical mono scale (strong→weak) — a distinct lightness step per tier.
+const CAT = [
+  "var(--chart-c1)",
+  "var(--chart-c2)",
+  "var(--chart-c3)",
+  "var(--chart-c4)",
+  "var(--chart-c5)",
+];
+const catFill = (i: number) => CAT[i % CAT.length];
 const CLIENT_LABEL: Record<string, string> = { active: "Active", prospect: "Prospect", past: "Past" };
 
 export default async function AnalyticsPage() {
   await requirePageUser();
   const a = await getAnalytics();
 
-  // Pipeline bars: neutral ink for open stages, reserved status hues for won/lost.
-  const pipelineData = a.pipelineByStage.map((p) => ({
+  // Each tier gets its own step from the monochrome categorical scale.
+  const pipelineData = a.pipelineByStage.map((p, i) => ({
     label: DEAL_STAGE_LABELS[p.stage],
     value: p.value,
-    fill:
-      p.stage === "won" ? "var(--chart-good)" : p.stage === "lost" ? "var(--chart-bad)" : "var(--chart-ink)",
+    fill: catFill(i),
   }));
 
   const serviceData = a.serviceLines
     .map((s) => ({ label: serviceTypeLabel(s.serviceType), value: s.active }))
-    .sort((x, y) => y.value - x.value);
+    .sort((x, y) => y.value - x.value)
+    .map((d, i) => ({ ...d, fill: catFill(i) }));
 
   const deliverableSegments = a.deliverablesByStatus.map((d, i) => ({
     label: DELIVERABLE_STATUS_LABELS[d.status],
@@ -97,7 +106,7 @@ export default async function AnalyticsPage() {
 
         <ChartCard title="Workload by owner" caption="Open + assigned deliverables per team member." className="lg:col-span-2">
           {a.workload.length > 0 ? (
-            <CategoryBars data={a.workload.map((w) => ({ label: w.name, value: w.count }))} unitLabel="deliverables" height={Math.max(160, a.workload.length * 44)} />
+            <CategoryBars data={a.workload.map((w, i) => ({ label: w.name, value: w.count, fill: catFill(i) }))} unitLabel="deliverables" height={Math.max(160, a.workload.length * 44)} />
           ) : (
             <p className="empty">No assigned deliverables yet.</p>
           )}
