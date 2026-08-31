@@ -2,7 +2,9 @@ import Link from "next/link";
 import { requirePageUser } from "@/lib/session";
 import { getUpcomingRenewals } from "@/features/renewals/service";
 import { getServiceLineStats } from "@/features/reports/service";
+import { getPipelineStats } from "@/features/deals/service";
 import { serviceTypeLabel, SERVICE_TYPES } from "@/features/projects/stages";
+import { DEAL_STAGES, DEAL_STAGE_LABELS, formatMoney } from "@/features/deals/display";
 
 /**
  * Dashboard (Phase 5) — leads with the "renewing in X days" widget for active
@@ -21,10 +23,12 @@ function urgencyClass(days: number): string {
 
 export default async function DashboardPage() {
   await requirePageUser();
-  const [renewals, serviceLines] = await Promise.all([
+  const [renewals, serviceLines, pipeline] = await Promise.all([
     getUpcomingRenewals(WINDOW_DAYS),
     getServiceLineStats(),
+    getPipelineStats(),
   ]);
+  const pipelineByStage = new Map(pipeline.map((p) => [p.stage, p]));
   // Present every service line (0 when none active), in the canonical order.
   const counts = new Map(serviceLines.map((s) => [s.serviceType, s.active]));
   const totalActive = serviceLines.reduce((n, s) => n + s.active, 0);
@@ -49,6 +53,32 @@ export default async function DashboardPage() {
               <span className="text-xs text-gray-500">{serviceTypeLabel(s)}</span>
             </Link>
           ))}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold">Sales pipeline</h2>
+          <Link href="/pipeline" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+            View board →
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {DEAL_STAGES.map((s) => {
+            const stat = pipelineByStage.get(s);
+            return (
+              <Link
+                key={s}
+                href="/pipeline"
+                className="flex flex-col gap-1 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900/50"
+              >
+                <span className="text-xl font-semibold tabular-nums">{formatMoney(stat?.value ?? 0)}</span>
+                <span className="text-xs text-gray-500">
+                  {DEAL_STAGE_LABELS[s]} · {stat?.count ?? 0}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </section>
 

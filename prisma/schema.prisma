@@ -39,6 +39,7 @@ model User {
   ownedDeliverables Deliverable[]
   activities        Activity[]
   auditLogs         AuditLog[]
+  ownedDeals        Deal[]
 
   @@index([role])
   @@map("users")
@@ -75,6 +76,7 @@ model Client {
   projects   Project[]
   activities Activity[]
   auditLogs  AuditLog[]
+  deals      Deal[]
 
   // status is frequently filtered in list views; deletedAt gates every read.
   @@index([status])
@@ -287,4 +289,43 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([changedById])
   @@map("audit_logs")
+}
+
+// --- Sales Pipeline (Phase 8) ---------------------------------------------
+
+enum DealStage {
+  lead
+  proposal
+  won
+  lost
+}
+
+// A sales opportunity for a client, moving through the pipeline
+// lead → proposal → won/lost. Soft-deletable (deals are valuable history; a
+// "lost" deal stays as history, deletion is for genuine mistakes only).
+model Deal {
+  id      String    @id @default(cuid())
+  clientId String   @map("client_id")
+  title   String
+  // Estimated value in whole currency units (e.g. dollars).
+  value   Int       @default(0)
+  stage   DealStage @default(lead)
+  ownerId String?   @map("owner_id")
+  notes   String?
+  expectedCloseDate DateTime? @map("expected_close_date")
+  // Set when the deal reaches a terminal stage (won/lost).
+  closedAt DateTime? @map("closed_at")
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  owner  User?  @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  // FK + fields filtered in the pipeline board; deletedAt gates reads.
+  @@index([clientId])
+  @@index([stage])
+  @@index([ownerId])
+  @@index([deletedAt])
+  @@map("deals")
 }

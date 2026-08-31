@@ -78,6 +78,6 @@ Built one phase at a time (commit per phase). Current status:
 - [x] **Phase 5** — Retainer flags & scheduled jobs (Inngest daily scan, renewals widget)
 - [x] **Phase 6** — Reporting & caching (ReportEntry, client reports, Upstash cache + invalidation)
 - [x] **Phase 7** — Audit Log (create/update/delete diffs on Client/Project/Deliverable, per-client trail)
-- [ ] Phase 8 — Sales pipeline
+- [x] **Phase 8** — Sales pipeline (Deal entity, lead→proposal→won/lost board, win promotes prospect)
 - [~] **Phase 9** — Hardening (bcrypt passwords, login rate limiting, security headers,
   cache-invalidation fix, auth sweep). Remaining: load testing; audit-in-transaction.

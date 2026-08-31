@@ -16,6 +16,7 @@ import {
   ProjectStatus,
   DeliverableStatus,
   ActivityType,
+  DealStage,
 } from "@prisma/client";
 import { hashPassword } from "../src/lib/auth";
 import { defaultStage } from "../src/features/projects/stages";
@@ -241,6 +242,49 @@ async function main() {
       },
     });
     console.log("seeded report entry (SEO Retainer 2026-08)");
+  }
+
+  // Sample deals for the pipeline. Idempotent by (client, title). No 'won'
+  // deals so seeded client statuses stay as-is.
+  const DEALS: Array<{
+    client: string;
+    title: string;
+    value: number;
+    stage: DealStage;
+    ownerEmail?: string;
+    expectedCloseDate?: string;
+    closed?: boolean;
+  }> = [
+    { client: "Acme Software", title: "Retainer proposal", value: 12000, stage: DealStage.proposal, ownerEmail: "lead@polaris.dev", expectedCloseDate: "2026-10-15" },
+    { client: "Northwind Retail", title: "Phase 2 expansion", value: 20000, stage: DealStage.lead, ownerEmail: "lead@polaris.dev", expectedCloseDate: "2026-11-30" },
+    { client: "Helios Media", title: "Re-engagement", value: 5000, stage: DealStage.lost, closed: true },
+  ];
+
+  for (const d of DEALS) {
+    const client = await prisma.client.findFirst({ where: { name: d.client } });
+    if (!client) continue;
+    const existing = await prisma.deal.findFirst({
+      where: { clientId: client.id, title: d.title },
+    });
+    if (existing) {
+      console.log(`deal ${d.title} already present — skipping`);
+      continue;
+    }
+    const owner = d.ownerEmail
+      ? await prisma.user.findUnique({ where: { email: d.ownerEmail } })
+      : null;
+    await prisma.deal.create({
+      data: {
+        clientId: client.id,
+        title: d.title,
+        value: d.value,
+        stage: d.stage,
+        ownerId: owner?.id ?? null,
+        expectedCloseDate: d.expectedCloseDate ? new Date(d.expectedCloseDate) : null,
+        closedAt: d.closed ? new Date() : null,
+      },
+    });
+    console.log(`seeded deal ${d.title} (${d.stage})`);
   }
 }
 

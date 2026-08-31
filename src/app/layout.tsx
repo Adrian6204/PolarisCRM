@@ -46,6 +46,12 @@ export default function RootLayout({
                 >
                   Deliverables
                 </Link>
+                <Link
+                  href="/pipeline"
+                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                >
+                  Pipeline
+                </Link>
               </div>
               <UserMenu />
             </nav>

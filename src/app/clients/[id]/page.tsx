@@ -7,10 +7,13 @@ import { StatusBadge } from "@/components/status-badge";
 import { ProjectStatusBadge } from "@/components/project-status-badge";
 import { listProjects } from "@/features/projects/service";
 import { listActivities } from "@/features/activities/service";
+import { listDeals } from "@/features/deals/service";
+import { prisma } from "@/lib/prisma";
 import { serviceTypeLabel, stageLabel } from "@/features/projects/stages";
 import { DeleteClientButton } from "./delete-button";
 import { ContactsSection } from "./contacts-section";
 import { ActivitySection } from "./activity-section";
+import { DealsSection } from "./deals-section";
 
 /** Client detail view with contacts + projects (Phase 1–2). */
 export const dynamic = "force-dynamic";
@@ -28,10 +31,16 @@ export default async function ClientDetailPage({
     throw err;
   });
   const writable = canWrite(user.role);
-  const [{ items: projects }, { items: activities }] = await Promise.all([
-    listProjects({ clientId: id, page: 1, pageSize: 100 }),
-    listActivities(id, { page: 1, pageSize: 50 }),
-  ]);
+  const [{ items: projects }, { items: activities }, { items: deals }, members] =
+    await Promise.all([
+      listProjects({ clientId: id, page: 1, pageSize: 100 }),
+      listActivities(id, { page: 1, pageSize: 50 }),
+      listDeals({ clientId: id, page: 1, pageSize: 100 }),
+      prisma.user.findMany({
+        select: { id: true, name: true, email: true },
+        orderBy: { name: "asc" },
+      }),
+    ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -131,6 +140,19 @@ export default async function ClientDetailPage({
           </ul>
         )}
       </section>
+
+      <DealsSection
+        clientId={client.id}
+        writable={writable}
+        members={members}
+        deals={deals.map((d) => ({
+          id: d.id,
+          title: d.title,
+          value: d.value,
+          stage: d.stage,
+          owner: d.owner,
+        }))}
+      />
 
       <ContactsSection
         clientId={client.id}
