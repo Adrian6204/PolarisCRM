@@ -80,7 +80,7 @@ async function main() {
         email: u.email,
         name: u.name,
         role: u.role,
-        passwordHash: hashPassword(u.password),
+        passwordHash: await hashPassword(u.password),
       },
     });
     console.log(`seeded user ${u.email} (${u.role})`);

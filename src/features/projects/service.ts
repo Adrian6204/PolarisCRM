@@ -7,6 +7,7 @@ import { AuditAction, AuditEntityType } from "@prisma/client";
 import { defaultStage, isValidStage } from "./stages";
 import { invalidateServiceLineStats } from "@/features/reports/service";
 import { recordAudit } from "@/features/audit/service";
+import { cacheInvalidate, cacheKeys } from "@/lib/cache";
 import type {
   CreateProjectInput,
   ListProjectsQuery,
@@ -173,9 +174,9 @@ export async function updateProject(
 
 export async function softDeleteProject(id: string, opts: WriteOpts = {}) {
   const db = opts.db ?? defaultPrisma;
-  const before = opts.actorId
-    ? await db.project.findFirst({ where: { id, ...notDeleted } })
-    : null;
+  // Fetched unconditionally — needed for both the audit diff and to invalidate
+  // the client's report cache below.
+  const before = await db.project.findFirst({ where: { id, ...notDeleted } });
   const result = await db.project.updateMany({
     where: { id, ...notDeleted },
     data: { deletedAt: new Date() },
@@ -183,6 +184,9 @@ export async function softDeleteProject(id: string, opts: WriteOpts = {}) {
   if (result.count === 0) throw ApiError.notFound("Project not found");
   opts.log?.debug({ projectId: id }, "db write: project soft-deleted");
   await invalidateServiceLineStats();
+  // A soft-deleted project drops out of listClientReports (which filters
+  // project.deletedAt), so its client's cached report set must be invalidated.
+  if (before) await cacheInvalidate(cacheKeys.clientReports(before.clientId));
   if (opts.actorId && before) {
     await recordAudit({
       entityType: AuditEntityType.project,

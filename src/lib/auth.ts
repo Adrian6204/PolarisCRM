@@ -1,10 +1,12 @@
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { createHash, timingSafeEqual } from "node:crypto";
+import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import { env } from "./env";
 import { ApiError } from "./errors";
+import { enforceRateLimit } from "./ratelimit";
+import { logger } from "./logger";
 import type { Role } from "@prisma/client";
 
 /**
@@ -14,24 +16,27 @@ import type { Role } from "@prisma/client";
  * serverless well. The user's role is embedded in the token and surfaced on
  * the session so route handlers can authorize without an extra DB round-trip.
  *
- * NOTE: the credentials provider here uses a SHA-256 comparison as a
- * placeholder for local/seed accounts. Before real use, swap to a slow hash
- * (argon2/bcrypt) — tracked for the Phase 9 hardening pass.
+ * Passwords are hashed with bcrypt (a deliberately slow hash). bcryptjs is
+ * pure-JS so it runs on serverless without native build steps.
  */
-function hash(password: string): string {
-  return createHash("sha256").update(password).digest("hex");
+const BCRYPT_COST = 10;
+
+/** Verify a plaintext password against a stored bcrypt hash. */
+export async function verifyPassword(
+  password: string,
+  storedHash: string,
+): Promise<boolean> {
+  try {
+    return await bcrypt.compare(password, storedHash);
+  } catch {
+    // Malformed/legacy hash — never throw, just deny.
+    return false;
+  }
 }
 
-/** Constant-time compare of a plaintext password against a stored hash. */
-export function verifyPassword(password: string, storedHash: string): boolean {
-  const a = Buffer.from(hash(password));
-  const b = Buffer.from(storedHash);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
-/** Produce the hash to persist for a new/seed credential account. */
-export function hashPassword(password: string): string {
-  return hash(password);
+/** Produce the bcrypt hash to persist for a new/seed credential account. */
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_COST);
 }
 
 export const authOptions: NextAuthOptions = {
@@ -44,13 +49,25 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials.password) return null;
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
-        });
+        const email = credentials.email.toLowerCase();
+
+        // Brute-force protection: strict `auth`-tier limit keyed by email + IP.
+        const ip =
+          (req?.headers?.["x-forwarded-for"] as string | undefined)
+            ?.split(",")[0]
+            ?.trim() ?? "unknown";
+        const rl = await enforceRateLimit("auth", `login:${email}:${ip}`);
+        if (!rl.success) {
+          logger.warn({ email, ip }, "login rate limit exceeded");
+          // NextAuth surfaces this as a generic sign-in failure.
+          throw new Error("Too many attempts. Please try again shortly.");
+        }
+
+        const user = await prisma.user.findUnique({ where: { email } });
         if (!user?.passwordHash) return null;
-        if (!verifyPassword(credentials.password, user.passwordHash)) return null;
+        if (!(await verifyPassword(credentials.password, user.passwordHash))) return null;
         return { id: user.id, email: user.email, name: user.name, role: user.role };
       },
     }),
