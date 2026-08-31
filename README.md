@@ -61,7 +61,7 @@ Built one phase at a time (commit per phase). Current status:
 - [x] **Phase 1** — Clients & Contacts (CRUD, soft delete, nested contacts)
 - [x] **Phase 2** — Projects (per-service stage sets, Kanban board, detail)
 - [x] **Phase 3** — Deliverables (task board, owner/due date, fast status edits)
-- [ ] Phase 4 — Activity Log
+- [x] **Phase 4** — Activity Log (per-client feed, quick-add calls/emails/notes)
 - [ ] Phase 5 — Retainer flags & scheduled jobs
 - [ ] Phase 6 — Reporting & caching
 - [ ] Phase 7 — Audit Log

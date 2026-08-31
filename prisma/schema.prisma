@@ -37,6 +37,7 @@ model User {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   ownedDeliverables Deliverable[]
+  activities        Activity[]
 
   @@index([role])
   @@map("users")
@@ -69,8 +70,9 @@ model Client {
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
-  contacts Contact[]
-  projects Project[]
+  contacts   Contact[]
+  projects   Project[]
+  activities Activity[]
 
   // status is frequently filtered in list views; deletedAt gates every read.
   @@index([status])
@@ -143,6 +145,7 @@ model Project {
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   deliverables Deliverable[]
+  activities   Activity[]
 
   // FK + the fields the board/list views filter on; deletedAt gates reads.
   @@index([clientId])
@@ -187,4 +190,37 @@ model Deliverable {
   @@index([dueDate])
   @@index([deletedAt])
   @@map("deliverables")
+}
+
+// --- Activity / Interaction Log (Phase 4) ---------------------------------
+
+enum ActivityType {
+  call
+  email
+  meeting
+  note
+}
+
+// Append-only interaction log. No soft delete (SPEC scopes it to
+// Client/Project/Deliverable); erroneous entries are hard-deleted by writers.
+model Activity {
+  id        String       @id @default(cuid())
+  clientId  String       @map("client_id")
+  // Some activity is client-level, not tied to a specific project.
+  projectId String?      @map("project_id")
+  type      ActivityType
+  summary   String
+  // Who logged it — captured from the session, kept if the user is removed.
+  createdById String?    @map("created_by")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  // Feed is per-client, newest first; composite covers that access pattern.
+  @@index([clientId, createdAt])
+  @@index([projectId])
+  @@index([createdById])
+  @@map("activities")
 }

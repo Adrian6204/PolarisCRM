@@ -15,6 +15,7 @@ import {
   EngagementType,
   ProjectStatus,
   DeliverableStatus,
+  ActivityType,
 } from "@prisma/client";
 import { hashPassword } from "../src/lib/auth";
 import { defaultStage } from "../src/features/projects/stages";
@@ -184,6 +185,45 @@ async function main() {
       },
     });
     console.log(`seeded deliverable ${d.title} (${d.status})`);
+  }
+
+  // Sample activity entries for the Northwind feed. Idempotent by (client,
+  // summary). project is optional (client-level activity is allowed).
+  const ACTIVITIES: Array<{
+    client: string;
+    project?: string;
+    type: ActivityType;
+    summary: string;
+    byEmail: string;
+  }> = [
+    { client: "Northwind Retail", project: "Storefront Rebuild", type: ActivityType.meeting, summary: "Kickoff meeting — scoped the storefront rebuild, agreed on Sept launch.", byEmail: "lead@polaris.dev" },
+    { client: "Northwind Retail", type: ActivityType.email, summary: "Sent the SEO retainer proposal for renewal.", byEmail: "member@polaris.dev" },
+  ];
+
+  for (const a of ACTIVITIES) {
+    const client = await prisma.client.findFirst({ where: { name: a.client } });
+    if (!client) continue;
+    const existing = await prisma.activity.findFirst({
+      where: { clientId: client.id, summary: a.summary },
+    });
+    if (existing) {
+      console.log(`activity already present — skipping`);
+      continue;
+    }
+    const project = a.project
+      ? await prisma.project.findFirst({ where: { name: a.project } })
+      : null;
+    const by = await prisma.user.findUnique({ where: { email: a.byEmail } });
+    await prisma.activity.create({
+      data: {
+        clientId: client.id,
+        projectId: project?.id ?? null,
+        type: a.type,
+        summary: a.summary,
+        createdById: by?.id ?? null,
+      },
+    });
+    console.log(`seeded activity (${a.type}) for ${a.client}`);
   }
 }
 

@@ -6,9 +6,11 @@ import { ApiError } from "@/lib/errors";
 import { StatusBadge } from "@/components/status-badge";
 import { ProjectStatusBadge } from "@/components/project-status-badge";
 import { listProjects } from "@/features/projects/service";
+import { listActivities } from "@/features/activities/service";
 import { serviceTypeLabel, stageLabel } from "@/features/projects/stages";
 import { DeleteClientButton } from "./delete-button";
 import { ContactsSection } from "./contacts-section";
+import { ActivitySection } from "./activity-section";
 
 /** Client detail view with contacts + projects (Phase 1–2). */
 export const dynamic = "force-dynamic";
@@ -26,7 +28,10 @@ export default async function ClientDetailPage({
     throw err;
   });
   const writable = canWrite(user.role);
-  const { items: projects } = await listProjects({ clientId: id, page: 1, pageSize: 100 });
+  const [{ items: projects }, { items: activities }] = await Promise.all([
+    listProjects({ clientId: id, page: 1, pageSize: 100 }),
+    listActivities(id, { page: 1, pageSize: 50 }),
+  ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -117,6 +122,20 @@ export default async function ClientDetailPage({
         clientId={client.id}
         contacts={client.contacts}
         writable={writable}
+      />
+
+      <ActivitySection
+        clientId={client.id}
+        writable={writable}
+        projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+        activities={activities.map((a) => ({
+          id: a.id,
+          type: a.type,
+          summary: a.summary,
+          createdAt: a.createdAt.toISOString(),
+          createdBy: a.createdBy,
+          project: a.project,
+        }))}
       />
     </div>
   );
