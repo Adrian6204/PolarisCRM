@@ -39,24 +39,24 @@ export function TaskRow({ task }: { task: TaskRowData }) {
   }
 
   return (
-    <tr className="border-b border-gray-100 dark:border-gray-900">
-      <td className="py-2 font-medium">{task.title}</td>
-      <td className="py-2 text-gray-500">
+    <tr className="border-b border-line last:border-0 transition-colors hover:bg-surface">
+      <td className="px-4 py-3 font-medium">{task.title}</td>
+      <td className="px-4 py-3 text-muted">
         <Link href={`/projects/${task.project.id}`} className="hover:underline">
           {task.project.name}
         </Link>
       </td>
-      <td className="py-2 text-gray-500">
+      <td className="px-4 py-3 text-muted">
         {task.owner ? (task.owner.name ?? task.owner.email) : "—"}
       </td>
-      <td className={`py-2 ${overdue ? "font-medium text-red-600 dark:text-red-400" : "text-gray-500"}`}>
+      <td className={`px-4 py-3 ${overdue ? "font-medium text-red-600 dark:text-red-400" : "text-muted"}`}>
         {task.dueDate ?? "—"}
       </td>
-      <td className="py-2">
+      <td className="px-4 py-3">
         <select
           value={task.status}
           onChange={(e) => onStatus(e.target.value as DeliverableStatus)}
-          className="rounded border border-gray-200 bg-transparent px-1.5 py-1 text-xs dark:border-gray-700"
+          className="rounded border border-line bg-transparent px-1.5 py-1 text-xs"
         >
           {DELIVERABLE_STATUSES.map((s) => (
             <option key={s} value={s}>

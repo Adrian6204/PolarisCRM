@@ -41,12 +41,12 @@ export function ClientControls({
         onChange={(e) => setQ(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && apply({ q })}
         onBlur={() => apply({ q })}
-        className="w-64 rounded border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900"
+        className="w-64 input"
       />
       <select
         value={initialStatus}
         onChange={(e) => apply({ status: e.target.value })}
-        className="rounded border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900"
+        className="input"
       >
         {STATUSES.map((s) => (
           <option key={s || "all"} value={s}>

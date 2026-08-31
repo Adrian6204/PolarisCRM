@@ -40,15 +40,15 @@ export default async function PipelinePage() {
             <div key={stage} className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between px-1">
                 <h2 className="text-sm font-semibold">{DEAL_STAGE_LABELS[stage]}</h2>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted">
                   {formatMoney(stat?.value ?? 0)} · {stat?.count ?? 0}
                 </span>
               </div>
-              <div className="flex min-h-16 flex-col gap-2 rounded-lg bg-gray-50 p-2 dark:bg-gray-900/40">
+              <div className="flex min-h-16 flex-col gap-2 rounded-lg bg-surface p-2">
                 {list.map((d) => (
                   <div
                     key={d.id}
-                    className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-950"
+                    className="flex flex-col gap-2 rounded-md border border-line bg-bg p-3 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <Link href={`/deals/${d.id}`} className="text-sm font-medium hover:underline">
@@ -58,10 +58,10 @@ export default async function PipelinePage() {
                         {formatMoney(d.value)}
                       </span>
                     </div>
-                    <Link href={`/clients/${d.clientId}`} className="text-xs text-gray-500 hover:underline">
+                    <Link href={`/clients/${d.clientId}`} className="text-xs text-muted hover:underline">
                       {d.client.name}
                     </Link>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted">
                       {d.owner ? (d.owner.name ?? d.owner.email) : "Unassigned"}
                     </span>
                     <DealStageSelect dealId={d.id} stage={d.stage} disabled={!writable} />

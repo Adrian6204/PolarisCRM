@@ -1,62 +1,33 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { UserMenu } from "@/components/user-menu";
+import { AppShell } from "@/components/app-shell";
+import { themeInitScript } from "@/components/theme-toggle";
+import { sans, mono } from "@/lib/fonts";
+import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Polaris CRM",
   description: "Internal CRM for Polaris.Dev — clients, projects, deliverables.",
 };
 
-export default function RootLayout({
+// Needs the session to decide whether to render the authenticated shell.
+export const dynamic = "force-dynamic";
+
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const user = await getCurrentUser();
+
   return (
-    <html lang="en">
+    <html lang="en" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Set the theme before paint to avoid a flash of the wrong mode. */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-screen">
         <Providers>
-          <header className="border-b border-gray-200 dark:border-gray-800">
-            <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-              <div className="flex items-center gap-6">
-                <Link href="/" className="font-semibold tracking-tight">
-                  Polaris CRM
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/clients"
-                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                >
-                  Clients
-                </Link>
-                <Link
-                  href="/projects"
-                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                >
-                  Projects
-                </Link>
-                <Link
-                  href="/deliverables"
-                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                >
-                  Deliverables
-                </Link>
-                <Link
-                  href="/pipeline"
-                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                >
-                  Pipeline
-                </Link>
-              </div>
-              <UserMenu />
-            </nav>
-          </header>
-          <div className="mx-auto max-w-5xl px-6 py-8">{children}</div>
+          {user ? <AppShell>{children}</AppShell> : children}
         </Providers>
       </body>
     </html>

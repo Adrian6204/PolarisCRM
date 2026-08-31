@@ -65,7 +65,7 @@ export function DeliverablesSection({
         {writable && !adding && (
           <button
             onClick={() => setAdding(true)}
-            className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+            className="text-sm link hover:underline"
           >
             + Add deliverable
           </button>
@@ -83,9 +83,9 @@ export function DeliverablesSection({
                 <h3 className="text-sm font-semibold">
                   {DELIVERABLE_STATUS_LABELS[status]}
                 </h3>
-                <span className="text-xs text-gray-400">{list.length}</span>
+                <span className="text-xs text-muted">{list.length}</span>
               </div>
-              <div className="flex min-h-16 flex-col gap-2 rounded-lg bg-gray-50 p-2 dark:bg-gray-900/40">
+              <div className="flex min-h-16 flex-col gap-2 rounded-lg bg-surface p-2">
                 {list.map((d) => (
                   <DeliverableCard
                     key={d.id}
@@ -144,7 +144,7 @@ function DeliverableCard({
   const overdue =
     d.dueDate && d.status !== DeliverableStatus.done && new Date(d.dueDate) < new Date();
   return (
-    <div className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+    <div className="flex flex-col gap-2 rounded-md border border-line bg-bg p-3 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <span className="text-sm font-medium">{d.title}</span>
         {writable && (
@@ -157,7 +157,7 @@ function DeliverableCard({
           </button>
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
         <span>{d.owner ? (d.owner.name ?? d.owner.email) : "Unassigned"}</span>
         {d.dueDate && (
           <span className={overdue ? "font-medium text-red-600 dark:text-red-400" : ""}>
@@ -169,7 +169,7 @@ function DeliverableCard({
       <select
         value={d.status}
         onChange={(e) => onStatus(e.target.value as DeliverableStatus)}
-        className="w-full rounded border border-gray-200 bg-transparent px-1.5 py-1 text-xs dark:border-gray-700"
+        className="w-full rounded border border-line bg-transparent px-1.5 py-1 text-xs"
       >
         {DELIVERABLE_STATUSES.map((s) => (
           <option key={s} value={s}>
@@ -206,7 +206,7 @@ function AddDeliverableForm({
         e.preventDefault();
         onSubmit({ title, ownerId: ownerId || null, dueDate: dueDate || null, status });
       }}
-      className="flex flex-col gap-3 rounded border border-gray-200 p-4 dark:border-gray-800"
+      className="flex flex-col gap-3 rounded border border-line p-4"
     >
       <input
         required
@@ -236,11 +236,11 @@ function AddDeliverableForm({
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
+          className="btn btn-primary !py-1.5"
         >
           Add
         </button>
-        <button type="button" onClick={onCancel} className="text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">
+        <button type="button" onClick={onCancel} className="btn btn-ghost">
           Cancel
         </button>
       </div>
@@ -249,4 +249,4 @@ function AddDeliverableForm({
 }
 
 const inputClass =
-  "rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900";
+  "input";

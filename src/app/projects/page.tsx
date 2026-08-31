@@ -51,7 +51,7 @@ export default async function ProjectsBoardPage({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             {projects.length} {serviceTypeLabel(serviceType)} engagement
             {projects.length === 1 ? "" : "s"}
           </p>
@@ -59,7 +59,7 @@ export default async function ProjectsBoardPage({
         {writable && (
           <Link
             href="/projects/new"
-            className="rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
+            className="btn btn-primary"
           >
             New project
           </Link>
@@ -73,13 +73,13 @@ export default async function ProjectsBoardPage({
           <div key={stage} className="flex w-64 shrink-0 flex-col gap-2">
             <div className="flex items-center justify-between px-1">
               <h2 className="text-sm font-semibold">{stageLabel(stage)}</h2>
-              <span className="text-xs text-gray-400">{list.length}</span>
+              <span className="text-xs text-muted">{list.length}</span>
             </div>
-            <div className="flex min-h-16 flex-col gap-2 rounded-lg bg-gray-50 p-2 dark:bg-gray-900/40">
+            <div className="flex min-h-16 flex-col gap-2 rounded-lg bg-surface p-2">
               {list.map((p) => (
                 <div
                   key={p.id}
-                  className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-950"
+                  className="flex flex-col gap-2 rounded-md border border-line bg-bg p-3 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <Link href={`/projects/${p.id}`} className="text-sm font-medium hover:underline">
@@ -89,7 +89,7 @@ export default async function ProjectsBoardPage({
                   </div>
                   <Link
                     href={`/clients/${p.clientId}`}
-                    className="text-xs text-gray-500 hover:underline"
+                    className="text-xs text-muted hover:underline"
                   >
                     {p.client.name}
                   </Link>

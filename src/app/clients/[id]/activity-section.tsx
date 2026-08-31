@@ -10,7 +10,7 @@ const TYPE_META: Record<ActivityType, { label: string; icon: string; badge: stri
   call: { label: "Call", icon: "📞", badge: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
   email: { label: "Email", icon: "✉️", badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300" },
   meeting: { label: "Meeting", icon: "🤝", badge: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" },
-  note: { label: "Note", icon: "📝", badge: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
+  note: { label: "Note", icon: "📝", badge: "bg-surface2 text-fg " },
 };
 const TYPES = Object.keys(TYPE_META) as ActivityType[];
 
@@ -71,7 +71,7 @@ export function ActivitySection({
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {activities.length === 0 ? (
-        <p className="rounded border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700">
+        <p className="rounded border border-dashed border-line-strong p-6 text-center text-sm text-muted">
           No activity logged yet.
         </p>
       ) : (
@@ -83,12 +83,12 @@ export function ActivitySection({
                 <div className="mt-0.5 text-lg" aria-hidden>
                   {meta.icon}
                 </div>
-                <div className="flex flex-1 flex-col gap-1 border-b border-gray-100 pb-3 dark:border-gray-900">
+                <div className="flex flex-1 flex-col gap-1 border-b border-line pb-3">
                   <div className="flex items-center justify-between gap-2">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${meta.badge}`}>
                       {meta.label}
                     </span>
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <div className="flex items-center gap-2 text-xs text-muted">
                       <time dateTime={a.createdAt}>{new Date(a.createdAt).toLocaleString()}</time>
                       {writable && (
                         <button
@@ -105,7 +105,7 @@ export function ActivitySection({
                     </div>
                   </div>
                   <p className="whitespace-pre-wrap text-sm">{a.summary}</p>
-                  <div className="flex flex-wrap gap-x-2 text-xs text-gray-500">
+                  <div className="flex flex-wrap gap-x-2 text-xs text-muted">
                     <span>{a.createdBy ? (a.createdBy.name ?? a.createdBy.email) : "Unknown"}</span>
                     {a.project && (
                       <>
@@ -145,7 +145,7 @@ function QuickAddForm({
         onSubmit({ type, summary, projectId: projectId || null });
         setSummary("");
       }}
-      className="flex flex-col gap-3 rounded border border-gray-200 p-4 dark:border-gray-800"
+      className="flex flex-col gap-3 rounded border border-line p-4"
     >
       <textarea
         required
@@ -153,7 +153,7 @@ function QuickAddForm({
         placeholder="Log a call, email, meeting or note…"
         value={summary}
         onChange={(e) => setSummary(e.target.value)}
-        className="rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+        className="input"
       />
       <div className="flex flex-wrap items-center gap-3">
         <select value={type} onChange={(e) => setType(e.target.value as ActivityType)} className={inputClass}>
@@ -173,7 +173,7 @@ function QuickAddForm({
         </select>
         <button
           type="submit"
-          className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
+          className="btn btn-primary !py-1.5"
         >
           Log activity
         </button>
@@ -183,4 +183,4 @@ function QuickAddForm({
 }
 
 const inputClass =
-  "rounded border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900";
+  "input";

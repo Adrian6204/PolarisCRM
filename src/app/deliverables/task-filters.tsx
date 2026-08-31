@@ -35,7 +35,7 @@ export function TaskFilters({
       <select
         value={status}
         onChange={(e) => apply({ status: e.target.value })}
-        className="rounded border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900"
+        className="input"
       >
         <option value="">All statuses</option>
         {DELIVERABLE_STATUSES.map((s) => (
@@ -48,7 +48,7 @@ export function TaskFilters({
       <select
         value={ownerId}
         onChange={(e) => apply({ ownerId: e.target.value })}
-        className="rounded border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-900"
+        className="input"
       >
         <option value="">All owners</option>
         <option value={currentUserId}>Assigned to me</option>

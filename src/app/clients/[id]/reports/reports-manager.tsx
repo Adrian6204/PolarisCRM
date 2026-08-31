@@ -48,7 +48,7 @@ export function ReportsManager({
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Reports</h2>
         {writable && !adding && projects.length > 0 && (
-          <button onClick={() => setAdding(true)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+          <button onClick={() => setAdding(true)} className="text-sm link hover:underline">
             + Add report
           </button>
         )}
@@ -73,17 +73,17 @@ export function ReportsManager({
       )}
 
       {reports.length === 0 ? (
-        <p className="rounded border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700">
+        <p className="rounded border border-dashed border-line-strong p-6 text-center text-sm text-muted">
           No reports yet.
         </p>
       ) : (
         <ul className="flex flex-col gap-4">
           {reports.map((r) => (
-            <li key={r.id} className="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+            <li key={r.id} className="rounded-lg border border-line p-4">
               <div className="flex items-start justify-between">
                 <div>
                   <span className="font-medium">{r.period}</span>
-                  <span className="ml-2 text-sm text-gray-500">
+                  <span className="ml-2 text-sm text-muted">
                     {r.project.name} · {serviceTypeLabel(r.project.serviceType)}
                   </span>
                 </div>
@@ -102,14 +102,14 @@ export function ReportsManager({
               {Object.keys(r.metrics).length > 0 && (
                 <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
                   {Object.entries(r.metrics).map(([k, v]) => (
-                    <div key={k} className="flex justify-between gap-2 border-b border-gray-100 py-1 dark:border-gray-900">
-                      <dt className="text-gray-500">{k}</dt>
+                    <div key={k} className="flex justify-between gap-2 border-b border-line py-1">
+                      <dt className="text-muted">{k}</dt>
                       <dd className="font-medium tabular-nums">{String(v)}</dd>
                     </div>
                   ))}
                 </dl>
               )}
-              {r.notes && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-400">{r.notes}</p>}
+              {r.notes && <p className="mt-2 whitespace-pre-wrap text-sm text-muted">{r.notes}</p>}
             </li>
           ))}
         </ul>
@@ -158,11 +158,11 @@ function ReportForm({
         if (!projectId) return;
         onSubmit(projectId, { period, metrics: buildMetrics(), notes: notes || null });
       }}
-      className="flex flex-col gap-3 rounded border border-gray-200 p-4 dark:border-gray-800"
+      className="flex flex-col gap-3 rounded border border-line p-4"
     >
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-gray-600 dark:text-gray-400">Project</span>
+          <span className="text-muted">Project</span>
           <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={inputClass}>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
@@ -170,34 +170,34 @@ function ReportForm({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-gray-600 dark:text-gray-400">Period</span>
+          <span className="text-muted">Period</span>
           <input type="month" required value={period} onChange={(e) => setPeriod(e.target.value)} className={inputClass} />
         </label>
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm text-gray-600 dark:text-gray-400">Metrics</span>
+        <span className="text-sm text-muted">Metrics</span>
         {rows.map((r, i) => (
           <div key={i} className="flex gap-2">
             <input placeholder="Metric (e.g. organic_clicks)" value={r.key} onChange={(e) => setRow(i, { key: e.target.value })} className={`${inputClass} flex-1`} />
             <input placeholder="Value" value={r.value} onChange={(e) => setRow(i, { value: e.target.value })} className={`${inputClass} w-32`} />
           </div>
         ))}
-        <button type="button" onClick={() => setRows((rs) => [...rs, { key: "", value: "" }])} className="self-start text-xs text-blue-600 hover:underline dark:text-blue-400">
+        <button type="button" onClick={() => setRows((rs) => [...rs, { key: "", value: "" }])} className="self-start text-xs link hover:underline">
           + Add metric
         </button>
       </div>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-gray-600 dark:text-gray-400">Notes</span>
+        <span className="text-muted">Notes</span>
         <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className={inputClass} />
       </label>
 
       <div className="flex items-center gap-3">
-        <button type="submit" className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300">
+        <button type="submit" className="btn btn-primary !py-1.5">
           Save report
         </button>
-        <button type="button" onClick={onCancel} className="text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">
+        <button type="button" onClick={onCancel} className="btn btn-ghost">
           Cancel
         </button>
       </div>
@@ -206,4 +206,4 @@ function ReportForm({
 }
 
 const inputClass =
-  "rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900";
+  "input";

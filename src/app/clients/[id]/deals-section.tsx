@@ -60,13 +60,13 @@ export function DealsSection({
         <h2 className="text-lg font-semibold">
           Deals{" "}
           {totalOpen > 0 && (
-            <span className="text-sm font-normal text-gray-500">
+            <span className="text-sm font-normal text-muted">
               · {formatMoney(totalOpen)} open
             </span>
           )}
         </h2>
         {writable && !adding && (
-          <button onClick={() => setAdding(true)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+          <button onClick={() => setAdding(true)} className="text-sm link hover:underline">
             + Add deal
           </button>
         )}
@@ -91,11 +91,11 @@ export function DealsSection({
       )}
 
       {deals.length === 0 && !adding ? (
-        <p className="rounded border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700">
+        <p className="rounded border border-dashed border-line-strong p-6 text-center text-sm text-muted">
           No deals yet.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-900">
+        <ul className="flex flex-col divide-y divide-line">
           {deals.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-4 py-3">
               <div className="flex flex-col">
@@ -107,7 +107,7 @@ export function DealsSection({
                     {DEAL_STAGE_LABELS[d.stage]}
                   </span>
                 </div>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-muted">
                   {formatMoney(d.value)}
                   {d.owner ? ` · ${d.owner.name ?? d.owner.email}` : ""}
                 </span>
@@ -159,7 +159,7 @@ function AddDealForm({
         e.preventDefault();
         onSubmit({ title, value: Number(value) || 0, stage, ownerId: ownerId || null });
       }}
-      className="flex flex-col gap-3 rounded border border-gray-200 p-4 dark:border-gray-800"
+      className="flex flex-col gap-3 rounded border border-line p-4"
     >
       <input required placeholder="Deal title" value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
       <div className="grid grid-cols-3 gap-3">
@@ -177,10 +177,10 @@ function AddDealForm({
         </select>
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300">
+        <button type="submit" className="btn btn-primary !py-1.5">
           Add
         </button>
-        <button type="button" onClick={onCancel} className="text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">
+        <button type="button" onClick={onCancel} className="btn btn-ghost">
           Cancel
         </button>
       </div>
@@ -189,4 +189,4 @@ function AddDealForm({
 }
 
 const inputClass =
-  "rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900";
+  "input";

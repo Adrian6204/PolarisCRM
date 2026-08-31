@@ -35,42 +35,42 @@ export default async function DeliverablesPage({
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Deliverables</h1>
-        <p className="text-sm text-gray-500">{total} across all projects</p>
+        <p className="text-sm text-muted">{total} across all projects</p>
       </div>
 
       <TaskFilters members={members} currentUserId={user.id} />
 
       {items.length === 0 ? (
-        <p className="rounded border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-700">
-          No deliverables match.
-        </p>
+        <p className="empty">No deliverables match.</p>
       ) : (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 text-left text-gray-500 dark:border-gray-800">
-              <th className="py-2 font-medium">Title</th>
-              <th className="py-2 font-medium">Project</th>
-              <th className="py-2 font-medium">Owner</th>
-              <th className="py-2 font-medium">Due</th>
-              <th className="py-2 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((d) => (
-              <TaskRow
-                key={d.id}
-                task={{
-                  id: d.id,
-                  title: d.title,
-                  status: d.status,
-                  dueDate: dateInput(d.dueDate),
-                  owner: d.owner,
-                  project: d.project,
-                }}
-              />
-            ))}
-          </tbody>
-        </table>
+        <div className="card overflow-hidden">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-line bg-surface text-left text-xs uppercase tracking-wide text-muted">
+                <th className="px-4 py-2.5 font-semibold">Title</th>
+                <th className="px-4 py-2.5 font-semibold">Project</th>
+                <th className="px-4 py-2.5 font-semibold">Owner</th>
+                <th className="px-4 py-2.5 font-semibold">Due</th>
+                <th className="px-4 py-2.5 font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody data-stagger>
+              {items.map((d) => (
+                <TaskRow
+                  key={d.id}
+                  task={{
+                    id: d.id,
+                    title: d.title,
+                    status: d.status,
+                    dueDate: dateInput(d.dueDate),
+                    owner: d.owner,
+                    project: d.project,
+                  }}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

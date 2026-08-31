@@ -46,7 +46,7 @@ export function DealStageSelect({
       value={value}
       disabled={disabled || saving}
       onChange={(e) => onChange(e.target.value as DealStage)}
-      className="w-full rounded border border-gray-200 bg-transparent px-1.5 py-1 text-xs disabled:opacity-60 dark:border-gray-700"
+      className="w-full rounded border border-line bg-transparent px-1.5 py-1 text-xs disabled:opacity-60"
     >
       {DEAL_STAGES.map((s) => (
         <option key={s} value={s}>

@@ -46,22 +46,22 @@ export default async function ClientDetailPage({
     <div className="flex flex-col gap-8">
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-2">
-          <Link href="/clients" className="text-sm text-gray-500 hover:underline">
+          <Link href="/clients" className="text-sm text-muted hover:underline">
             ← Clients
           </Link>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight">{client.name}</h1>
             <StatusBadge status={client.status} />
           </div>
-          <dl className="mt-1 flex flex-wrap gap-x-8 gap-y-1 text-sm text-gray-500">
+          <dl className="mt-1 flex flex-wrap gap-x-8 gap-y-1 text-sm text-muted">
             <div>
-              <dt className="inline font-medium text-gray-600 dark:text-gray-400">
+              <dt className="inline font-medium text-muted">
                 Industry:{" "}
               </dt>
               <dd className="inline">{client.industry ?? "—"}</dd>
             </div>
             <div>
-              <dt className="inline font-medium text-gray-600 dark:text-gray-400">
+              <dt className="inline font-medium text-muted">
                 Website:{" "}
               </dt>
               <dd className="inline">
@@ -70,7 +70,7 @@ export default async function ClientDetailPage({
                     href={client.website}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-600 hover:underline dark:text-blue-400"
+                    className="link hover:underline"
                   >
                     {client.website}
                   </a>
@@ -85,13 +85,13 @@ export default async function ClientDetailPage({
         <div className="flex items-center gap-3">
           <Link
             href={`/clients/${client.id}/reports`}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+            className="btn btn-secondary !py-1.5"
           >
             Reports
           </Link>
           <Link
             href={`/clients/${client.id}/audit`}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+            className="btn btn-secondary !py-1.5"
           >
             Audit
           </Link>
@@ -99,7 +99,7 @@ export default async function ClientDetailPage({
             <>
               <Link
                 href={`/clients/${client.id}/edit`}
-                className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+                className="btn btn-secondary !py-1.5"
               >
                 Edit
               </Link>
@@ -113,24 +113,24 @@ export default async function ClientDetailPage({
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Projects</h2>
           {writable && (
-            <Link href="/projects/new" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+            <Link href="/projects/new" className="text-sm link hover:underline">
               + New project
             </Link>
           )}
         </div>
         {projects.length === 0 ? (
-          <p className="rounded border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700">
+          <p className="rounded border border-dashed border-line-strong p-6 text-center text-sm text-muted">
             No projects yet.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-900">
+          <ul className="flex flex-col divide-y divide-line">
             {projects.map((p) => (
               <li key={p.id} className="flex items-center justify-between py-3">
                 <div className="flex flex-col">
                   <Link href={`/projects/${p.id}`} className="font-medium hover:underline">
                     {p.name}
                   </Link>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-muted">
                     {serviceTypeLabel(p.serviceType)} · {stageLabel(p.stage)}
                   </span>
                 </div>

@@ -52,7 +52,7 @@ export function StageSelect({
       value={value}
       disabled={disabled || saving}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded border border-gray-200 bg-transparent px-1.5 py-1 text-xs disabled:opacity-60 dark:border-gray-700"
+      className="w-full rounded border border-line bg-transparent px-1.5 py-1 text-xs disabled:opacity-60"
     >
       {options.map((s) => (
         <option key={s} value={s}>

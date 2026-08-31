@@ -103,14 +103,14 @@ export function ClientForm({ initial }: { initial?: ClientFormValues }) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
+          className="btn btn-primary"
         >
           {pending ? "Saving…" : editing ? "Save changes" : "Create client"}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+          className="btn btn-ghost"
         >
           Cancel
         </button>
@@ -120,7 +120,7 @@ export function ClientForm({ initial }: { initial?: ClientFormValues }) {
 }
 
 const inputClass =
-  "rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900";
+  "input";
 
 function Field({
   label,
@@ -133,7 +133,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className="text-gray-600 dark:text-gray-400">
+      <span className="text-muted">
         {label}
         {required && <span className="text-red-500"> *</span>}
       </span>

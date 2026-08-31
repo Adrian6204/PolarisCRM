@@ -1,0 +1,11 @@
+2026-08-31 | pending-review | surface: whole-app design pass | axis: visual system
+choice: refined data-tool lane — deep-ink neutrals + one flat cobalt accent
+(#3b5bf5 / #6d86ff dark), Plus Jakarta Sans + JetBrains Mono, sidebar shell,
+runtime light/dark toggle, restrained app-shell motion (stagger/reveal).
+reason: user asked for the built CRM to be "presentable"; app-shell product so
+no marketing-hero / macrostructure rotation. Contrast verified with node WCAG
+math (python unavailable for the generator scripts). Applied app-wide via token
+remap; key surfaces (login, dashboard, clients/deliverables tables) restyled.
+verification-gap: no pixel screenshot — Chrome MCP tools not exposed in this
+session; validated structurally (rendered HTML has shell/cards/mono figures,
+CSS compiled, gate green). A human should eyeball both themes once.

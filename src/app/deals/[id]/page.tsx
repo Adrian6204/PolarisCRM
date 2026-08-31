@@ -31,12 +31,12 @@ export default async function DealDetailPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <Link href="/pipeline" className="text-sm text-gray-500 hover:underline">
+        <Link href="/pipeline" className="text-sm text-muted hover:underline">
           ← Pipeline
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">{deal.title}</h1>
-        <p className="text-sm text-gray-500">
-          <Link href={`/clients/${deal.clientId}`} className="text-blue-600 hover:underline dark:text-blue-400">
+        <p className="text-sm text-muted">
+          <Link href={`/clients/${deal.clientId}`} className="link hover:underline">
             {deal.client.name}
           </Link>
         </p>

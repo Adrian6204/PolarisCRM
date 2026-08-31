@@ -7,7 +7,7 @@ import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { stagesFor, stageLabel } from "@/features/projects/stages";
 
 const inputClass =
-  "rounded border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900";
+  "input";
 
 export interface EditableProject {
   id: string;
@@ -147,14 +147,14 @@ export function ProjectEditor({
           <button
             onClick={onSave}
             disabled={pending}
-            className="rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
+            className="btn btn-primary"
           >
             {pending ? "Saving…" : "Save changes"}
           </button>
           <button
             onClick={onDelete}
             disabled={pending}
-            className="rounded border border-red-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
+            className="btn btn-danger"
           >
             Delete
           </button>
@@ -167,7 +167,7 @@ export function ProjectEditor({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className="text-gray-600 dark:text-gray-400">{label}</span>
+      <span className="text-muted">{label}</span>
       {children}
     </label>
   );

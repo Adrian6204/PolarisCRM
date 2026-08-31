@@ -40,25 +40,25 @@ export default async function ProjectDetailPage({
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <Link href="/projects" className="text-sm text-gray-500 hover:underline">
+        <Link href="/projects" className="text-sm text-muted hover:underline">
           ← Projects
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">{project.name}</h1>
-        <dl className="flex flex-wrap gap-x-8 gap-y-1 text-sm text-gray-500">
+        <dl className="flex flex-wrap gap-x-8 gap-y-1 text-sm text-muted">
           <div>
-            <dt className="inline font-medium text-gray-600 dark:text-gray-400">Client: </dt>
+            <dt className="inline font-medium text-muted">Client: </dt>
             <dd className="inline">
-              <Link href={`/clients/${project.clientId}`} className="text-blue-600 hover:underline dark:text-blue-400">
+              <Link href={`/clients/${project.clientId}`} className="link hover:underline">
                 {project.client.name}
               </Link>
             </dd>
           </div>
           <div>
-            <dt className="inline font-medium text-gray-600 dark:text-gray-400">Service: </dt>
+            <dt className="inline font-medium text-muted">Service: </dt>
             <dd className="inline">{serviceTypeLabel(project.serviceType)}</dd>
           </div>
           <div>
-            <dt className="inline font-medium text-gray-600 dark:text-gray-400">Engagement: </dt>
+            <dt className="inline font-medium text-muted">Engagement: </dt>
             <dd className="inline">{project.engagementType === "retainer" ? "Retainer" : "One-off"}</dd>
           </div>
         </dl>

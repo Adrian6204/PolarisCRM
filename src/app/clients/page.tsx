@@ -29,12 +29,12 @@ export default async function ClientsPage({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
-          <p className="text-sm text-gray-500">{total} total</p>
+          <p className="text-sm text-muted">{total} total</p>
         </div>
         {writable && (
           <Link
             href="/clients/new"
-            className="rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
+            className="btn btn-primary"
           >
             New client
           </Link>
@@ -44,37 +44,36 @@ export default async function ClientsPage({
       <ClientControls initialQ={query.q ?? ""} initialStatus={query.status ?? ""} />
 
       {items.length === 0 ? (
-        <p className="rounded border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-700">
+        <p className="empty">
           No clients match. {writable && "Create one to get started."}
         </p>
       ) : (
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 text-left text-gray-500 dark:border-gray-800">
-              <th className="py-2 font-medium">Name</th>
-              <th className="py-2 font-medium">Industry</th>
-              <th className="py-2 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((c) => (
-              <tr
-                key={c.id}
-                className="border-b border-gray-100 hover:bg-gray-50 dark:border-gray-900 dark:hover:bg-gray-900/50"
-              >
-                <td className="py-2">
-                  <Link href={`/clients/${c.id}`} className="font-medium hover:underline">
-                    {c.name}
-                  </Link>
-                </td>
-                <td className="py-2 text-gray-500">{c.industry ?? "—"}</td>
-                <td className="py-2">
-                  <StatusBadge status={c.status} />
-                </td>
+        <div className="card overflow-hidden">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-line bg-surface text-left text-xs uppercase tracking-wide text-muted">
+                <th className="px-4 py-2.5 font-semibold">Name</th>
+                <th className="px-4 py-2.5 font-semibold">Industry</th>
+                <th className="px-4 py-2.5 font-semibold">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody data-stagger>
+              {items.map((c) => (
+                <tr key={c.id} className="border-b border-line last:border-0 transition-colors hover:bg-surface">
+                  <td className="px-4 py-3">
+                    <Link href={`/clients/${c.id}`} className="font-medium hover:text-brand hover:underline">
+                      {c.name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-muted">{c.industry ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={c.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

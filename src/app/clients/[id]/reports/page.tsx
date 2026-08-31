@@ -31,7 +31,7 @@ export default async function ClientReportsPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <Link href={`/clients/${id}`} className="text-sm text-gray-500 hover:underline">
+        <Link href={`/clients/${id}`} className="text-sm text-muted hover:underline">
           ← {client.name}
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">Reports · {client.name}</h1>
