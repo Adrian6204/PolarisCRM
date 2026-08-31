@@ -1,14 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 
 /**
- * The real Polaris Dev brand lockup (chrome mark + wordmark). It's a black-on-
- * white PNG; the `.brand-logo` class blends its ground into the surface so it
- * reads correctly on both light and dark without a logo box.
+ * The real Polaris Dev brand lockup (chrome mark + wordmark). Transparent PNG
+ * (white ground keyed out); `.brand-logo` inverts it to light on dark themes so
+ * it reads on any surface with no logo box.
  */
 export function BrandLockup({ className = "" }: { className?: string }) {
   return (
     <img
-      src="/brand/polaris-lockup.png"
+      src="/brand/polaris-wordmark.png"
       alt="Polaris Dev"
       className={`brand-logo select-none ${className}`}
       draggable={false}

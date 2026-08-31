@@ -35,13 +35,16 @@ function LoginForm() {
 
   return (
     <main className="grid min-h-screen place-items-center px-6 py-12" style={{ backgroundColor: "var(--surface)" }}>
-      <div className="w-full max-w-sm animate-rise">
+      {/* No animation wrapper around the logo: an anim/transform ancestor forms
+          a stacking context that would isolate the logo's mix-blend-mode and
+          leave its white ground visible as a box. */}
+      <div className="w-full max-w-sm">
         <div className="mb-7 flex flex-col items-center gap-4 text-center">
           <BrandLockup className="h-auto w-64" />
           <p className="text-sm text-muted">Sign in to your workspace</p>
         </div>
 
-        <div className="card p-6 sm:p-7">
+        <div className="card animate-rise p-6 sm:p-7">
           <form onSubmit={onSubmit} className="flex flex-col gap-4">
             <label className="flex flex-col gap-1.5">
               <span className="field-label">Email</span>

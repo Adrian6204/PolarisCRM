@@ -185,20 +185,15 @@
     color: var(--text);
   }
 
-  /* Brand lockup is a black-on-white PNG. Blend its white ground into the
-     surface (multiply) in light; invert to white-on-black then blend (screen)
-     in dark — so it sits seamlessly on either theme with no logo box. */
-  .brand-logo {
-    mix-blend-mode: multiply;
-  }
+  /* Brand lockup is a transparent PNG (white ground keyed out). Its content is
+     dark, so it shows on light surfaces as-is and is inverted to light on dark.
+     No blend mode → no stacking-context fragility, transparent on any surface. */
   :root[data-theme="dark"] .brand-logo {
     filter: invert(1);
-    mix-blend-mode: screen;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) .brand-logo {
       filter: invert(1);
-      mix-blend-mode: screen;
     }
   }
 }
