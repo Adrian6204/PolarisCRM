@@ -11,8 +11,12 @@ import {
   Role,
   ClientStatus,
   ContactRole,
+  ServiceType,
+  EngagementType,
+  ProjectStatus,
 } from "@prisma/client";
 import { hashPassword } from "../src/lib/auth";
+import { defaultStage } from "../src/features/projects/stages";
 
 const prisma = new PrismaClient();
 
@@ -96,6 +100,48 @@ async function main() {
       },
     });
     console.log(`seeded client ${c.name} (${c.contacts.length} contacts)`);
+  }
+
+  // Sample projects, attached to seeded clients by name. Stage defaults to the
+  // first in each service/engagement set. Idempotent by (client, name).
+  const PROJECTS: Array<{
+    client: string;
+    name: string;
+    serviceType: ServiceType;
+    engagementType: EngagementType;
+    status: ProjectStatus;
+    startDate: string;
+    retainerRenewalDate?: string;
+  }> = [
+    { client: "Northwind Retail", name: "Storefront Rebuild", serviceType: ServiceType.web_dev, engagementType: EngagementType.one_off, status: ProjectStatus.active, startDate: "2026-06-01" },
+    { client: "Northwind Retail", name: "SEO Retainer", serviceType: ServiceType.seo, engagementType: EngagementType.retainer, status: ProjectStatus.active, startDate: "2026-01-15", retainerRenewalDate: "2026-09-15" },
+    { client: "Acme Software", name: "Marketing Site", serviceType: ServiceType.web_dev, engagementType: EngagementType.one_off, status: ProjectStatus.on_hold, startDate: "2026-07-01" },
+    { client: "Acme Software", name: "Content Engine", serviceType: ServiceType.aigc, engagementType: EngagementType.retainer, status: ProjectStatus.active, startDate: "2026-05-01", retainerRenewalDate: "2026-11-01" },
+  ];
+
+  for (const p of PROJECTS) {
+    const client = await prisma.client.findFirst({ where: { name: p.client } });
+    if (!client) continue;
+    const existing = await prisma.project.findFirst({
+      where: { clientId: client.id, name: p.name },
+    });
+    if (existing) {
+      console.log(`project ${p.name} already present — skipping`);
+      continue;
+    }
+    await prisma.project.create({
+      data: {
+        clientId: client.id,
+        name: p.name,
+        serviceType: p.serviceType,
+        engagementType: p.engagementType,
+        stage: defaultStage(p.serviceType, p.engagementType),
+        status: p.status,
+        startDate: new Date(p.startDate),
+        retainerRenewalDate: p.retainerRenewalDate ? new Date(p.retainerRenewalDate) : null,
+      },
+    });
+    console.log(`seeded project ${p.name} (${p.serviceType})`);
   }
 }
 

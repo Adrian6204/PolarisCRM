@@ -4,10 +4,13 @@ import { requirePageUser, canWrite } from "@/lib/session";
 import { getClient } from "@/features/clients/service";
 import { ApiError } from "@/lib/errors";
 import { StatusBadge } from "@/components/status-badge";
+import { ProjectStatusBadge } from "@/components/project-status-badge";
+import { listProjects } from "@/features/projects/service";
+import { serviceTypeLabel, stageLabel } from "@/features/projects/stages";
 import { DeleteClientButton } from "./delete-button";
 import { ContactsSection } from "./contacts-section";
 
-/** Client detail view with contacts (Phase 1). */
+/** Client detail view with contacts + projects (Phase 1–2). */
 export const dynamic = "force-dynamic";
 
 export default async function ClientDetailPage({
@@ -23,6 +26,7 @@ export default async function ClientDetailPage({
     throw err;
   });
   const writable = canWrite(user.role);
+  const { items: projects } = await listProjects({ clientId: id, page: 1, pageSize: 100 });
 
   return (
     <div className="flex flex-col gap-8">
@@ -76,6 +80,38 @@ export default async function ClientDetailPage({
           </div>
         )}
       </div>
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Projects</h2>
+          {writable && (
+            <Link href="/projects/new" className="text-sm text-blue-600 hover:underline dark:text-blue-400">
+              + New project
+            </Link>
+          )}
+        </div>
+        {projects.length === 0 ? (
+          <p className="rounded border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700">
+            No projects yet.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-gray-100 dark:divide-gray-900">
+            {projects.map((p) => (
+              <li key={p.id} className="flex items-center justify-between py-3">
+                <div className="flex flex-col">
+                  <Link href={`/projects/${p.id}`} className="font-medium hover:underline">
+                    {p.name}
+                  </Link>
+                  <span className="text-sm text-gray-500">
+                    {serviceTypeLabel(p.serviceType)} · {stageLabel(p.stage)}
+                  </span>
+                </div>
+                <ProjectStatusBadge status={p.status} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <ContactsSection
         clientId={client.id}

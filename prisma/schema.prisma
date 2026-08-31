@@ -68,6 +68,7 @@ model Client {
   updatedAt DateTime     @updatedAt @map("updated_at")
 
   contacts Contact[]
+  projects Project[]
 
   // status is frequently filtered in list views; deletedAt gates every read.
   @@index([status])
@@ -93,4 +94,58 @@ model Contact {
   // FK index (SPEC: index FKs as tables are created, not retrofitted).
   @@index([clientId])
   @@map("contacts")
+}
+
+// --- Projects / Engagements (Phase 2) -------------------------------------
+
+enum ServiceType {
+  web_dev
+  seo
+  software_dev
+  app_dev
+  aigc
+}
+
+enum EngagementType {
+  one_off
+  retainer
+}
+
+enum ProjectStatus {
+  active
+  on_hold
+  completed
+  cancelled
+}
+
+model Project {
+  id       String         @id @default(cuid())
+  clientId String         @map("client_id")
+  name     String
+  serviceType    ServiceType    @map("service_type")
+  engagementType EngagementType @map("engagement_type")
+  // Free-form string: the valid set depends on serviceType (+ engagementType
+  // for aigc). Validated in the app against the stage sets in
+  // src/features/projects/stages.ts rather than a DB enum, so workflows can
+  // evolve without a migration.
+  stage    String
+  startDate DateTime  @map("start_date")
+  // Null for ongoing retainers with no fixed end.
+  endDate   DateTime? @map("end_date")
+  // Only meaningful for retainer engagements; renewal automation lands in P5.
+  retainerRenewalDate DateTime? @map("retainer_renewal_date")
+  status   ProjectStatus @default(active)
+  deletedAt DateTime?    @map("deleted_at")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // FK + the fields the board/list views filter on; deletedAt gates reads.
+  @@index([clientId])
+  @@index([serviceType])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([retainerRenewalDate])
+  @@map("projects")
 }

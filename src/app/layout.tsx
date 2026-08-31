@@ -28,6 +28,12 @@ export default function RootLayout({
                 >
                   Clients
                 </Link>
+                <Link
+                  href="/projects"
+                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                >
+                  Projects
+                </Link>
               </div>
               <UserMenu />
             </nav>
