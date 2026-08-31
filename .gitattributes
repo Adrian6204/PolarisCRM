@@ -1,2 +1,8 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Prisma migration files must stay LF on every platform — their SHA-256 is
+# recorded in _prisma_migrations.checksum, so a CRLF conversion would make
+# Prisma see an "edited" migration and refuse to deploy.
+*.sql text eol=lf
+prisma/migrations/** text eol=lf
