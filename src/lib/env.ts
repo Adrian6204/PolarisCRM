@@ -26,6 +26,14 @@ const envSchema = z.object({
   SENTRY_ORG: z.string().optional(),
   SENTRY_PROJECT: z.string().optional(),
 
+  // Inngest (background jobs). Optional locally — the Inngest dev server needs
+  // no keys; these are the production event/signing keys.
+  INNGEST_EVENT_KEY: z.string().optional(),
+  INNGEST_SIGNING_KEY: z.string().optional(),
+  // Shared secret Vercel Cron sends so the scan endpoint can't be triggered by
+  // the public. Optional locally; required in production (checked at the route).
+  CRON_SECRET: z.string().optional(),
+
   LOG_LEVEL: z
     .enum(["debug", "info", "warn", "error"])
     .optional(),

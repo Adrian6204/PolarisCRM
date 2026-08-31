@@ -7,5 +7,5 @@ import { getCurrentUser } from "@/lib/auth";
  */
 export default async function HomePage() {
   const user = await getCurrentUser();
-  redirect(user ? "/clients" : "/login");
+  redirect(user ? "/dashboard" : "/login");
 }

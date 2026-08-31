@@ -27,6 +27,7 @@
     "@prisma/client": "^6.2.1",
     "@upstash/ratelimit": "^2.0.5",
     "@upstash/redis": "^1.34.3",
+    "inngest": "^4.18.1",
     "next": "^15.1.6",
     "next-auth": "^4.24.11",
     "pino": "^9.6.0",

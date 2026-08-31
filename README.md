@@ -33,6 +33,19 @@ npm run dev                   # http://localhost:3000
 
 Health check: [`/api/health`](http://localhost:3000/api/health).
 
+### Background jobs (Inngest) — local dev
+
+The retainer-renewal scan (Phase 5) runs on Inngest. Locally, set `INNGEST_DEV=1`
+in `.env` and run the dev server alongside `npm run dev`:
+
+```bash
+npx inngest-cli@latest dev -u http://localhost:3000/api/inngest
+```
+
+Trigger the daily scan manually by hitting the Vercel-Cron endpoint
+(`GET /api/cron/scan-renewals`); in production Vercel Cron calls it on the
+schedule in [vercel.json](./vercel.json), authenticated with `CRON_SECRET`.
+
 Seeded logins (local only): `admin@polaris.dev`, `lead@polaris.dev`,
 `member@polaris.dev` — all password `password123`.
 
@@ -62,7 +75,7 @@ Built one phase at a time (commit per phase). Current status:
 - [x] **Phase 2** — Projects (per-service stage sets, Kanban board, detail)
 - [x] **Phase 3** — Deliverables (task board, owner/due date, fast status edits)
 - [x] **Phase 4** — Activity Log (per-client feed, quick-add calls/emails/notes)
-- [ ] Phase 5 — Retainer flags & scheduled jobs
+- [x] **Phase 5** — Retainer flags & scheduled jobs (Inngest daily scan, renewals widget)
 - [ ] Phase 6 — Reporting & caching
 - [ ] Phase 7 — Audit Log
 - [ ] Phase 8 — Sales pipeline
