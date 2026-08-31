@@ -2,9 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePageUser, canWrite } from "@/lib/session";
 import { getProject } from "@/features/projects/service";
+import { listDeliverables } from "@/features/deliverables/service";
+import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
 import { serviceTypeLabel } from "@/features/projects/stages";
 import { ProjectEditor } from "./project-editor";
+import { DeliverablesSection } from "./deliverables-section";
 
 /** Project detail (Phase 2), linked to its client. */
 export const dynamic = "force-dynamic";
@@ -25,6 +28,14 @@ export default async function ProjectDetailPage({
     throw err;
   });
   const writable = canWrite(user.role);
+
+  const [{ items: deliverables }, members] = await Promise.all([
+    listDeliverables({ projectId: id, page: 1, pageSize: 200 }),
+    prisma.user.findMany({
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -66,6 +77,20 @@ export default async function ProjectDetailPage({
           endDate: dateInput(project.endDate),
           retainerRenewalDate: dateInput(project.retainerRenewalDate),
         }}
+      />
+
+      <DeliverablesSection
+        projectId={project.id}
+        writable={writable}
+        members={members}
+        deliverables={deliverables.map((d) => ({
+          id: d.id,
+          title: d.title,
+          description: d.description,
+          status: d.status,
+          dueDate: dateInput(d.dueDate),
+          owner: d.owner,
+        }))}
       />
     </div>
   );

@@ -14,6 +14,7 @@ import {
   ServiceType,
   EngagementType,
   ProjectStatus,
+  DeliverableStatus,
 } from "@prisma/client";
 import { hashPassword } from "../src/lib/auth";
 import { defaultStage } from "../src/features/projects/stages";
@@ -142,6 +143,47 @@ async function main() {
       },
     });
     console.log(`seeded project ${p.name} (${p.serviceType})`);
+  }
+
+  // Sample deliverables, attached to seeded projects by name and optionally
+  // owned by a seeded user (by email). Idempotent by (project, title).
+  const DELIVERABLES: Array<{
+    project: string;
+    title: string;
+    ownerEmail?: string;
+    dueDate?: string;
+    status: DeliverableStatus;
+  }> = [
+    { project: "Storefront Rebuild", title: "Homepage wireframes", ownerEmail: "lead@polaris.dev", dueDate: "2026-09-10", status: DeliverableStatus.in_progress },
+    { project: "Storefront Rebuild", title: "Product page build", ownerEmail: "member@polaris.dev", dueDate: "2026-09-20", status: DeliverableStatus.not_started },
+    { project: "SEO Retainer", title: "Technical SEO audit", ownerEmail: "member@polaris.dev", dueDate: "2026-09-05", status: DeliverableStatus.review },
+    { project: "SEO Retainer", title: "Backlink report", status: DeliverableStatus.not_started },
+    { project: "Content Engine", title: "Prompt templates", ownerEmail: "lead@polaris.dev", dueDate: "2026-09-12", status: DeliverableStatus.done },
+  ];
+
+  for (const d of DELIVERABLES) {
+    const project = await prisma.project.findFirst({ where: { name: d.project } });
+    if (!project) continue;
+    const existing = await prisma.deliverable.findFirst({
+      where: { projectId: project.id, title: d.title },
+    });
+    if (existing) {
+      console.log(`deliverable ${d.title} already present — skipping`);
+      continue;
+    }
+    const owner = d.ownerEmail
+      ? await prisma.user.findUnique({ where: { email: d.ownerEmail } })
+      : null;
+    await prisma.deliverable.create({
+      data: {
+        projectId: project.id,
+        title: d.title,
+        ownerId: owner?.id ?? null,
+        dueDate: d.dueDate ? new Date(d.dueDate) : null,
+        status: d.status,
+      },
+    });
+    console.log(`seeded deliverable ${d.title} (${d.status})`);
   }
 }
 

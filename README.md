@@ -60,7 +60,7 @@ Built one phase at a time (commit per phase). Current status:
 - [x] **Phase 0** — Infra scaffolding
 - [x] **Phase 1** — Clients & Contacts (CRUD, soft delete, nested contacts)
 - [x] **Phase 2** — Projects (per-service stage sets, Kanban board, detail)
-- [ ] Phase 3 — Deliverables
+- [x] **Phase 3** — Deliverables (task board, owner/due date, fast status edits)
 - [ ] Phase 4 — Activity Log
 - [ ] Phase 5 — Retainer flags & scheduled jobs
 - [ ] Phase 6 — Reporting & caching
