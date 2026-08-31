@@ -1,0 +1,30 @@
+# Local dev Postgres for Polaris CRM.
+#
+# Upstash Redis is REST-based and cloud-hosted; there is no local container for
+# it. For local dev either leave UPSTASH_* unset (rate limiting/caching degrade
+# open) or point at a free dev Upstash database.
+#
+#   docker compose up -d
+#   npm run prisma:migrate
+#   npm run db:seed
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: polaris-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: polaris
+      POSTGRES_PASSWORD: polaris
+      POSTGRES_DB: polaris_crm
+    ports:
+      - "5432:5432"
+    volumes:
+      - polaris_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U polaris -d polaris_crm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  polaris_pgdata:
