@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requirePageUser } from "@/lib/session";
 import { getUpcomingRenewals } from "@/features/renewals/service";
-import { serviceTypeLabel } from "@/features/projects/stages";
+import { getServiceLineStats } from "@/features/reports/service";
+import { serviceTypeLabel, SERVICE_TYPES } from "@/features/projects/stages";
 
 /**
  * Dashboard (Phase 5) — leads with the "renewing in X days" widget for active
@@ -20,11 +21,36 @@ function urgencyClass(days: number): string {
 
 export default async function DashboardPage() {
   await requirePageUser();
-  const renewals = await getUpcomingRenewals(WINDOW_DAYS);
+  const [renewals, serviceLines] = await Promise.all([
+    getUpcomingRenewals(WINDOW_DAYS),
+    getServiceLineStats(),
+  ]);
+  // Present every service line (0 when none active), in the canonical order.
+  const counts = new Map(serviceLines.map((s) => [s.serviceType, s.active]));
+  const totalActive = serviceLines.reduce((n, s) => n + s.active, 0);
 
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold">Active engagements by service line</h2>
+          <span className="text-sm text-gray-500">{totalActive} active</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {SERVICE_TYPES.map((s) => (
+            <Link
+              key={s}
+              href={`/projects?serviceType=${s}`}
+              className="flex flex-col gap-1 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900/50"
+            >
+              <span className="text-2xl font-semibold tabular-nums">{counts.get(s) ?? 0}</span>
+              <span className="text-xs text-gray-500">{serviceTypeLabel(s)}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between">

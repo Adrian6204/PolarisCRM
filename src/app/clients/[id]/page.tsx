@@ -73,17 +73,25 @@ export default async function ClientDetailPage({
           </dl>
         </div>
 
-        {writable && (
-          <div className="flex items-center gap-3">
-            <Link
-              href={`/clients/${client.id}/edit`}
-              className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
-            >
-              Edit
-            </Link>
-            <DeleteClientButton clientId={client.id} clientName={client.name} />
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/clients/${client.id}/reports`}
+            className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+          >
+            Reports
+          </Link>
+          {writable && (
+            <>
+              <Link
+                href={`/clients/${client.id}/edit`}
+                className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+              >
+                Edit
+              </Link>
+              <DeleteClientButton clientId={client.id} clientName={client.name} />
+            </>
+          )}
+        </div>
       </div>
 
       <section className="flex flex-col gap-4">

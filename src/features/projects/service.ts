@@ -5,6 +5,7 @@ import { ApiError } from "@/lib/errors";
 import type { Logger } from "@/lib/logger";
 import { toSkipTake } from "@/lib/validation";
 import { defaultStage, isValidStage } from "./stages";
+import { invalidateServiceLineStats } from "@/features/reports/service";
 import type {
   CreateProjectInput,
   ListProjectsQuery,
@@ -107,6 +108,8 @@ export async function createProject(
     },
   });
   opts.log?.debug({ projectId: project.id, clientId }, "db write: project created");
+  // A new active project changes the dashboard's per-service-line counts.
+  await invalidateServiceLineStats();
   return project;
 }
 
@@ -137,6 +140,8 @@ export async function updateProject(
 
   const project = await db.project.update({ where: { id }, data: input });
   opts.log?.debug({ projectId: id }, "db write: project updated");
+  // status changes move counts between/through the active bucket.
+  await invalidateServiceLineStats();
   return project;
 }
 
@@ -151,4 +156,5 @@ export async function softDeleteProject(
   });
   if (result.count === 0) throw ApiError.notFound("Project not found");
   opts.log?.debug({ projectId: id }, "db write: project soft-deleted");
+  await invalidateServiceLineStats();
 }

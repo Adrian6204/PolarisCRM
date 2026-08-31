@@ -146,6 +146,7 @@ model Project {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   deliverables Deliverable[]
   activities   Activity[]
+  reports      ReportEntry[]
 
   // FK + the fields the board/list views filter on; deletedAt gates reads.
   @@index([clientId])
@@ -223,4 +224,26 @@ model Activity {
   @@index([projectId])
   @@index([createdById])
   @@map("activities")
+}
+
+// --- Reporting (Phase 6) --------------------------------------------------
+
+// Recurring per-period report for a project (SEO/AIGC monthly updates, etc.).
+// metrics is JSON so each service type can record whatever it tracks.
+model ReportEntry {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id")
+  // Reporting period, e.g. "2026-08". One entry per project per period.
+  period    String
+  metrics   Json     @default("{}")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // One report per project per period; index the FK for per-project listing.
+  @@unique([projectId, period])
+  @@index([projectId])
+  @@map("report_entries")
 }

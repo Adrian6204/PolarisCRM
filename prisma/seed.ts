@@ -225,6 +225,23 @@ async function main() {
     });
     console.log(`seeded activity (${a.type}) for ${a.client}`);
   }
+
+  // Sample report entry (monthly SEO metrics). Idempotent via the
+  // (project, period) unique constraint.
+  const seoProject = await prisma.project.findFirst({ where: { name: "SEO Retainer" } });
+  if (seoProject) {
+    await prisma.reportEntry.upsert({
+      where: { projectId_period: { projectId: seoProject.id, period: "2026-08" } },
+      update: {},
+      create: {
+        projectId: seoProject.id,
+        period: "2026-08",
+        metrics: { organic_clicks: 1240, keywords_ranked: 58 },
+        notes: "August SEO summary",
+      },
+    });
+    console.log("seeded report entry (SEO Retainer 2026-08)");
+  }
 }
 
 main()

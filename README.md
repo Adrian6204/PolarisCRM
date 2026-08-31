@@ -76,7 +76,7 @@ Built one phase at a time (commit per phase). Current status:
 - [x] **Phase 3** — Deliverables (task board, owner/due date, fast status edits)
 - [x] **Phase 4** — Activity Log (per-client feed, quick-add calls/emails/notes)
 - [x] **Phase 5** — Retainer flags & scheduled jobs (Inngest daily scan, renewals widget)
-- [ ] Phase 6 — Reporting & caching
+- [x] **Phase 6** — Reporting & caching (ReportEntry, client reports, Upstash cache + invalidation)
 - [ ] Phase 7 — Audit Log
 - [ ] Phase 8 — Sales pipeline
 - [ ] Phase 9 — Hardening pass
