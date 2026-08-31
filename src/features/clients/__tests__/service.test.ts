@@ -99,6 +99,16 @@ describe("createClient", () => {
     await createClient({ name: "Acme", status: ClientStatus.prospect }, { db: db as never });
     expect(db.auditLog.create).not.toHaveBeenCalled();
   });
+
+  it("propagates an audit-write failure (atomic: no silent success)", async () => {
+    // Phase 9: audit is written inside the mutation's transaction, so a failure
+    // rolls the write back rather than being swallowed.
+    db.client.create.mockResolvedValue({ id: "c1", name: "Acme" });
+    db.auditLog.create.mockRejectedValue(new Error("audit down"));
+    await expect(
+      createClient({ name: "Acme", status: ClientStatus.prospect }, { db: db as never, actorId: "u7" }),
+    ).rejects.toThrow("audit down");
+  });
 });
 
 describe("updateClient", () => {

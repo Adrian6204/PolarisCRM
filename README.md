@@ -80,4 +80,4 @@ Built one phase at a time (commit per phase). Current status:
 - [x] **Phase 7** — Audit Log (create/update/delete diffs on Client/Project/Deliverable, per-client trail)
 - [x] **Phase 8** — Sales pipeline (Deal entity, lead→proposal→won/lost board, win promotes prospect)
 - [~] **Phase 9** — Hardening (bcrypt passwords, login rate limiting, security headers,
-  cache-invalidation fix, auth sweep). Remaining: load testing; audit-in-transaction.
+  cache-invalidation fix, auth sweep, audit-in-transaction). Remaining: load testing.

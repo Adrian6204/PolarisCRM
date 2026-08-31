@@ -73,7 +73,7 @@ export function computeDiff(
   return asJson({ changed });
 }
 
-export interface RecordAuditParams {
+export interface AuditInput {
   entityType: AuditEntityType;
   entityId: string;
   action: AuditAction;
@@ -81,25 +81,39 @@ export interface RecordAuditParams {
   actorId: string | null;
   before?: unknown;
   after?: unknown;
+}
+
+/**
+ * Build the row for `auditLog.create`. Services call this inside their own
+ * transaction so the audit entry commits atomically with the mutation — no
+ * change can be persisted without its audit record (Phase 9 hardening).
+ */
+export function auditData(params: AuditInput): Prisma.AuditLogUncheckedCreateInput {
+  return {
+    entityType: params.entityType,
+    entityId: params.entityId,
+    action: params.action,
+    clientId: params.clientId,
+    changedById: params.actorId,
+    diff: computeDiff(params.action, params.before, params.after),
+  };
+}
+
+export interface RecordAuditParams extends AuditInput {
   db?: Db;
   log?: Logger;
 }
 
+/**
+ * Best-effort audit write for callers that aren't inside a transaction. Never
+ * throws into the caller. Prefer writing `auditData()` inside the mutation's
+ * transaction where atomicity matters.
+ */
 export async function recordAudit(params: RecordAuditParams): Promise<void> {
   const { db = defaultPrisma, log = logger } = params;
   try {
-    await db.auditLog.create({
-      data: {
-        entityType: params.entityType,
-        entityId: params.entityId,
-        action: params.action,
-        clientId: params.clientId,
-        changedById: params.actorId,
-        diff: computeDiff(params.action, params.before, params.after),
-      },
-    });
+    await db.auditLog.create({ data: auditData(params) });
   } catch (err) {
-    // Never fail the user's write because auditing failed — just surface it.
     log.error(
       { err, entityType: params.entityType, entityId: params.entityId, action: params.action },
       "audit write failed",

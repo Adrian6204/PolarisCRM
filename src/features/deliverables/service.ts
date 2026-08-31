@@ -3,7 +3,8 @@ import { AuditAction, AuditEntityType } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
 import { toSkipTake } from "@/lib/validation";
-import { recordAudit } from "@/features/audit/service";
+import { runInTx } from "@/lib/tx";
+import { auditData } from "@/features/audit/service";
 import type { ListResult, WriteOpts } from "@/features/clients/service";
 import type {
   CreateDeliverableInput,
@@ -90,34 +91,35 @@ export async function createDeliverable(
   input: CreateDeliverableInput,
   opts: WriteOpts = {},
 ) {
-  const db = opts.db ?? defaultPrisma;
-  await assertProjectActive(db, projectId);
-  await assertOwnerExists(db, input.ownerId);
-
-  const deliverable = await db.deliverable.create({
-    data: {
-      projectId,
-      title: input.title,
-      description: input.description ?? null,
-      ownerId: input.ownerId ?? null,
-      dueDate: input.dueDate ?? null,
-      status: input.status,
-    },
-    include: relations,
+  const deliverable = await runInTx(opts.db, async (tx) => {
+    await assertProjectActive(tx, projectId);
+    await assertOwnerExists(tx, input.ownerId);
+    const created = await tx.deliverable.create({
+      data: {
+        projectId,
+        title: input.title,
+        description: input.description ?? null,
+        ownerId: input.ownerId ?? null,
+        dueDate: input.dueDate ?? null,
+        status: input.status,
+      },
+      include: relations,
+    });
+    if (opts.actorId) {
+      await tx.auditLog.create({
+        data: auditData({
+          entityType: AuditEntityType.deliverable,
+          entityId: created.id,
+          action: AuditAction.create,
+          clientId: created.project.clientId,
+          actorId: opts.actorId,
+          after: created,
+        }),
+      });
+    }
+    return created;
   });
   opts.log?.debug({ deliverableId: deliverable.id, projectId }, "db write: deliverable created");
-  if (opts.actorId) {
-    await recordAudit({
-      entityType: AuditEntityType.deliverable,
-      entityId: deliverable.id,
-      action: AuditAction.create,
-      clientId: deliverable.project.clientId,
-      actorId: opts.actorId,
-      after: deliverable,
-      db,
-      log: opts.log,
-    });
-  }
   return deliverable;
 }
 
@@ -126,60 +128,59 @@ export async function updateDeliverable(
   input: UpdateDeliverableInput,
   opts: WriteOpts = {},
 ) {
-  const db = opts.db ?? defaultPrisma;
-  const existing = await db.deliverable.findFirst({
-    where: { id, ...notDeleted },
-    include: { project: { select: { clientId: true } } },
-  });
-  if (!existing) throw ApiError.notFound("Deliverable not found");
-  if (input.ownerId !== undefined) await assertOwnerExists(db, input.ownerId);
+  const deliverable = await runInTx(opts.db, async (tx) => {
+    const existing = await tx.deliverable.findFirst({
+      where: { id, ...notDeleted },
+      include: { project: { select: { clientId: true } } },
+    });
+    if (!existing) throw ApiError.notFound("Deliverable not found");
+    if (input.ownerId !== undefined) await assertOwnerExists(tx, input.ownerId);
 
-  const deliverable = await db.deliverable.update({
-    where: { id },
-    data: input,
-    include: relations,
+    const updated = await tx.deliverable.update({ where: { id }, data: input, include: relations });
+    if (opts.actorId) {
+      await tx.auditLog.create({
+        data: auditData({
+          entityType: AuditEntityType.deliverable,
+          entityId: id,
+          action: AuditAction.update,
+          clientId: existing.project.clientId,
+          actorId: opts.actorId,
+          before: existing,
+          after: updated,
+        }),
+      });
+    }
+    return updated;
   });
   opts.log?.debug({ deliverableId: id }, "db write: deliverable updated");
-  if (opts.actorId) {
-    await recordAudit({
-      entityType: AuditEntityType.deliverable,
-      entityId: id,
-      action: AuditAction.update,
-      clientId: existing.project.clientId,
-      actorId: opts.actorId,
-      before: existing,
-      after: deliverable,
-      db,
-      log: opts.log,
-    });
-  }
   return deliverable;
 }
 
 export async function softDeleteDeliverable(id: string, opts: WriteOpts = {}) {
-  const db = opts.db ?? defaultPrisma;
-  const before = opts.actorId
-    ? await db.deliverable.findFirst({
-        where: { id, ...notDeleted },
-        include: { project: { select: { clientId: true } } },
-      })
-    : null;
-  const result = await db.deliverable.updateMany({
-    where: { id, ...notDeleted },
-    data: { deletedAt: new Date() },
-  });
-  if (result.count === 0) throw ApiError.notFound("Deliverable not found");
-  opts.log?.debug({ deliverableId: id }, "db write: deliverable soft-deleted");
-  if (opts.actorId && before) {
-    await recordAudit({
-      entityType: AuditEntityType.deliverable,
-      entityId: id,
-      action: AuditAction.delete,
-      clientId: before.project.clientId,
-      actorId: opts.actorId,
-      before,
-      db,
-      log: opts.log,
+  await runInTx(opts.db, async (tx) => {
+    const before = opts.actorId
+      ? await tx.deliverable.findFirst({
+          where: { id, ...notDeleted },
+          include: { project: { select: { clientId: true } } },
+        })
+      : null;
+    const result = await tx.deliverable.updateMany({
+      where: { id, ...notDeleted },
+      data: { deletedAt: new Date() },
     });
-  }
+    if (result.count === 0) throw ApiError.notFound("Deliverable not found");
+    if (opts.actorId && before) {
+      await tx.auditLog.create({
+        data: auditData({
+          entityType: AuditEntityType.deliverable,
+          entityId: id,
+          action: AuditAction.delete,
+          clientId: before.project.clientId,
+          actorId: opts.actorId,
+          before,
+        }),
+      });
+    }
+  });
+  opts.log?.debug({ deliverableId: id }, "db write: deliverable soft-deleted");
 }

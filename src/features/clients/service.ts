@@ -5,7 +5,8 @@ import { ApiError } from "@/lib/errors";
 import type { Logger } from "@/lib/logger";
 import type { Pagination } from "@/lib/validation";
 import { toSkipTake } from "@/lib/validation";
-import { recordAudit } from "@/features/audit/service";
+import { runInTx } from "@/lib/tx";
+import { auditData } from "@/features/audit/service";
 import type {
   CreateClientInput,
   ListClientsQuery,
@@ -101,21 +102,24 @@ export async function createClient(
   input: CreateClientInput,
   opts: WriteOpts = {},
 ) {
-  const db = opts.db ?? defaultPrisma;
-  const client = await db.client.create({ data: input });
+  const client = await runInTx(opts.db, async (tx) => {
+    const created = await tx.client.create({ data: input });
+    if (opts.actorId) {
+      // Same transaction → the audit row commits with the client or not at all.
+      await tx.auditLog.create({
+        data: auditData({
+          entityType: AuditEntityType.client,
+          entityId: created.id,
+          action: AuditAction.create,
+          clientId: created.id,
+          actorId: opts.actorId,
+          after: created,
+        }),
+      });
+    }
+    return created;
+  });
   opts.log?.debug({ clientId: client.id }, "db write: client created");
-  if (opts.actorId) {
-    await recordAudit({
-      entityType: AuditEntityType.client,
-      entityId: client.id,
-      action: AuditAction.create,
-      clientId: client.id,
-      actorId: opts.actorId,
-      after: client,
-      db,
-      log: opts.log,
-    });
-  }
   return client;
 }
 
@@ -124,58 +128,57 @@ export async function updateClient(
   input: UpdateClientInput,
   opts: WriteOpts = {},
 ) {
-  const db = opts.db ?? defaultPrisma;
-  // Capture the pre-update state for the audit diff (only when auditing).
-  const before = opts.actorId
-    ? await db.client.findFirst({ where: { id, ...notDeleted } })
-    : null;
-  // Ensure it exists and isn't soft-deleted before updating (updateMany avoids
-  // resurrecting a deleted row; count tells us whether it matched).
-  const result = await db.client.updateMany({
-    where: { id, ...notDeleted },
-    data: input,
+  const after = await runInTx(opts.db, async (tx) => {
+    // Capture the pre-update state for the audit diff (only when auditing).
+    const before = opts.actorId
+      ? await tx.client.findFirst({ where: { id, ...notDeleted } })
+      : null;
+    // updateMany avoids resurrecting a soft-deleted row; count tells us if it matched.
+    const result = await tx.client.updateMany({ where: { id, ...notDeleted }, data: input });
+    if (result.count === 0) throw ApiError.notFound("Client not found");
+    const updated = await getClient(id, { db: tx });
+    if (opts.actorId) {
+      await tx.auditLog.create({
+        data: auditData({
+          entityType: AuditEntityType.client,
+          entityId: id,
+          action: AuditAction.update,
+          clientId: id,
+          actorId: opts.actorId,
+          before,
+          after: updated,
+        }),
+      });
+    }
+    return updated;
   });
-  if (result.count === 0) throw ApiError.notFound("Client not found");
   opts.log?.debug({ clientId: id }, "db write: client updated");
-  const after = await getClient(id, { db });
-  if (opts.actorId) {
-    await recordAudit({
-      entityType: AuditEntityType.client,
-      entityId: id,
-      action: AuditAction.update,
-      clientId: id,
-      actorId: opts.actorId,
-      before,
-      after,
-      db,
-      log: opts.log,
-    });
-  }
   return after;
 }
 
 /** Soft delete — sets deletedAt. Idempotent-ish: 404 if already gone. */
 export async function softDeleteClient(id: string, opts: WriteOpts = {}) {
-  const db = opts.db ?? defaultPrisma;
-  const before = opts.actorId
-    ? await db.client.findFirst({ where: { id, ...notDeleted } })
-    : null;
-  const result = await db.client.updateMany({
-    where: { id, ...notDeleted },
-    data: { deletedAt: new Date() },
-  });
-  if (result.count === 0) throw ApiError.notFound("Client not found");
-  opts.log?.debug({ clientId: id }, "db write: client soft-deleted");
-  if (opts.actorId) {
-    await recordAudit({
-      entityType: AuditEntityType.client,
-      entityId: id,
-      action: AuditAction.delete,
-      clientId: id,
-      actorId: opts.actorId,
-      before,
-      db,
-      log: opts.log,
+  await runInTx(opts.db, async (tx) => {
+    const before = opts.actorId
+      ? await tx.client.findFirst({ where: { id, ...notDeleted } })
+      : null;
+    const result = await tx.client.updateMany({
+      where: { id, ...notDeleted },
+      data: { deletedAt: new Date() },
     });
-  }
+    if (result.count === 0) throw ApiError.notFound("Client not found");
+    if (opts.actorId) {
+      await tx.auditLog.create({
+        data: auditData({
+          entityType: AuditEntityType.client,
+          entityId: id,
+          action: AuditAction.delete,
+          clientId: id,
+          actorId: opts.actorId,
+          before,
+        }),
+      });
+    }
+  });
+  opts.log?.debug({ clientId: id }, "db write: client soft-deleted");
 }

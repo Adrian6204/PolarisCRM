@@ -6,8 +6,9 @@ import { toSkipTake } from "@/lib/validation";
 import { AuditAction, AuditEntityType } from "@prisma/client";
 import { defaultStage, isValidStage } from "./stages";
 import { invalidateServiceLineStats } from "@/features/reports/service";
-import { recordAudit } from "@/features/audit/service";
+import { auditData } from "@/features/audit/service";
 import { cacheInvalidate, cacheKeys } from "@/lib/cache";
+import { runInTx } from "@/lib/tx";
 import type {
   CreateProjectInput,
   ListProjectsQuery,
@@ -89,41 +90,42 @@ export async function createProject(
   input: CreateProjectInput,
   opts: WriteOpts = {},
 ) {
-  const db = opts.db ?? defaultPrisma;
-  await assertClientActive(db, clientId);
-
   // Default the stage to the first in the service/engagement's set when unset.
   const stage =
     input.stage ?? defaultStage(input.serviceType, input.engagementType);
 
-  const project = await db.project.create({
-    data: {
-      clientId,
-      name: input.name,
-      serviceType: input.serviceType,
-      engagementType: input.engagementType,
-      stage,
-      startDate: input.startDate,
-      endDate: input.endDate ?? null,
-      retainerRenewalDate: input.retainerRenewalDate ?? null,
-      status: input.status,
-    },
+  const project = await runInTx(opts.db, async (tx) => {
+    await assertClientActive(tx, clientId);
+    const created = await tx.project.create({
+      data: {
+        clientId,
+        name: input.name,
+        serviceType: input.serviceType,
+        engagementType: input.engagementType,
+        stage,
+        startDate: input.startDate,
+        endDate: input.endDate ?? null,
+        retainerRenewalDate: input.retainerRenewalDate ?? null,
+        status: input.status,
+      },
+    });
+    if (opts.actorId) {
+      await tx.auditLog.create({
+        data: auditData({
+          entityType: AuditEntityType.project,
+          entityId: created.id,
+          action: AuditAction.create,
+          clientId,
+          actorId: opts.actorId,
+          after: created,
+        }),
+      });
+    }
+    return created;
   });
   opts.log?.debug({ projectId: project.id, clientId }, "db write: project created");
-  // A new active project changes the dashboard's per-service-line counts.
+  // Post-commit: a new active project changes the per-service-line counts.
   await invalidateServiceLineStats();
-  if (opts.actorId) {
-    await recordAudit({
-      entityType: AuditEntityType.project,
-      entityId: project.id,
-      action: AuditAction.create,
-      clientId,
-      actorId: opts.actorId,
-      after: project,
-      db,
-      log: opts.log,
-    });
-  }
   return project;
 }
 
@@ -132,71 +134,75 @@ export async function updateProject(
   input: UpdateProjectInput,
   opts: WriteOpts = {},
 ) {
-  const db = opts.db ?? defaultPrisma;
-  const existing = await db.project.findFirst({ where: { id, ...notDeleted } });
-  if (!existing) throw ApiError.notFound("Project not found");
+  const project = await runInTx(opts.db, async (tx) => {
+    const existing = await tx.project.findFirst({ where: { id, ...notDeleted } });
+    if (!existing) throw ApiError.notFound("Project not found");
 
-  // Stage transitions are validated against the project's (immutable)
-  // service/engagement type.
-  if (input.stage && !isValidStage(existing.serviceType, existing.engagementType, input.stage)) {
-    throw ApiError.badRequest(
-      `Invalid stage "${input.stage}" for ${existing.serviceType}/${existing.engagementType}`,
-    );
-  }
-  if (existing.engagementType === EngagementType.one_off && input.retainerRenewalDate) {
-    throw ApiError.badRequest("retainerRenewalDate is only valid for retainer engagements");
-  }
-  const start = input.startDate ?? existing.startDate;
-  const end = input.endDate === undefined ? existing.endDate : input.endDate;
-  if (end && end < start) {
-    throw ApiError.badRequest("endDate cannot be before startDate");
-  }
+    // Stage transitions are validated against the project's (immutable)
+    // service/engagement type.
+    if (input.stage && !isValidStage(existing.serviceType, existing.engagementType, input.stage)) {
+      throw ApiError.badRequest(
+        `Invalid stage "${input.stage}" for ${existing.serviceType}/${existing.engagementType}`,
+      );
+    }
+    if (existing.engagementType === EngagementType.one_off && input.retainerRenewalDate) {
+      throw ApiError.badRequest("retainerRenewalDate is only valid for retainer engagements");
+    }
+    const start = input.startDate ?? existing.startDate;
+    const end = input.endDate === undefined ? existing.endDate : input.endDate;
+    if (end && end < start) {
+      throw ApiError.badRequest("endDate cannot be before startDate");
+    }
 
-  const project = await db.project.update({ where: { id }, data: input });
+    const updated = await tx.project.update({ where: { id }, data: input });
+    if (opts.actorId) {
+      await tx.auditLog.create({
+        data: auditData({
+          entityType: AuditEntityType.project,
+          entityId: id,
+          action: AuditAction.update,
+          clientId: existing.clientId,
+          actorId: opts.actorId,
+          before: existing,
+          after: updated,
+        }),
+      });
+    }
+    return updated;
+  });
   opts.log?.debug({ projectId: id }, "db write: project updated");
-  // status changes move counts between/through the active bucket.
+  // Post-commit: status changes move counts through the active bucket.
   await invalidateServiceLineStats();
-  if (opts.actorId) {
-    await recordAudit({
-      entityType: AuditEntityType.project,
-      entityId: id,
-      action: AuditAction.update,
-      clientId: existing.clientId,
-      actorId: opts.actorId,
-      before: existing,
-      after: project,
-      db,
-      log: opts.log,
-    });
-  }
   return project;
 }
 
 export async function softDeleteProject(id: string, opts: WriteOpts = {}) {
-  const db = opts.db ?? defaultPrisma;
-  // Fetched unconditionally — needed for both the audit diff and to invalidate
-  // the client's report cache below.
-  const before = await db.project.findFirst({ where: { id, ...notDeleted } });
-  const result = await db.project.updateMany({
-    where: { id, ...notDeleted },
-    data: { deletedAt: new Date() },
-  });
-  if (result.count === 0) throw ApiError.notFound("Project not found");
-  opts.log?.debug({ projectId: id }, "db write: project soft-deleted");
-  await invalidateServiceLineStats();
-  // A soft-deleted project drops out of listClientReports (which filters
-  // project.deletedAt), so its client's cached report set must be invalidated.
-  if (before) await cacheInvalidate(cacheKeys.clientReports(before.clientId));
-  if (opts.actorId && before) {
-    await recordAudit({
-      entityType: AuditEntityType.project,
-      entityId: id,
-      action: AuditAction.delete,
-      clientId: before.clientId,
-      actorId: opts.actorId,
-      before,
-      db,
-      log: opts.log,
+  const before = await runInTx(opts.db, async (tx) => {
+    // Fetched inside the tx — needed for the audit diff and cache invalidation.
+    const existing = await tx.project.findFirst({ where: { id, ...notDeleted } });
+    const result = await tx.project.updateMany({
+      where: { id, ...notDeleted },
+      data: { deletedAt: new Date() },
     });
-  }
+    if (result.count === 0) throw ApiError.notFound("Project not found");
+    if (opts.actorId && existing) {
+      await tx.auditLog.create({
+        data: auditData({
+          entityType: AuditEntityType.project,
+          entityId: id,
+          action: AuditAction.delete,
+          clientId: existing.clientId,
+          actorId: opts.actorId,
+          before: existing,
+        }),
+      });
+    }
+    return existing;
+  });
+  opts.log?.debug({ projectId: id }, "db write: project soft-deleted");
+  // Post-commit cache invalidation.
+  await invalidateServiceLineStats();
+  // A soft-deleted project drops out of listClientReports (filters deletedAt),
+  // so its client's cached report set must be invalidated.
+  if (before) await cacheInvalidate(cacheKeys.clientReports(before.clientId));
 }
