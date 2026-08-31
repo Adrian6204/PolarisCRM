@@ -26,9 +26,9 @@ export const GET = withApiRoute(async ({ params }) => {
 
 export const POST = withApiRoute(
   async ({ req, params, log }) => {
-    await requireRole(Role.admin, Role.project_lead);
+    const user = await requireRole(Role.admin, Role.project_lead);
     const input = await parseJson(req, createDeliverableSchema);
-    const deliverable = await createDeliverable(String(params.id), input, { log });
+    const deliverable = await createDeliverable(String(params.id), input, { log, actorId: user.id });
     return ok(deliverable, { status: 201 });
   },
   { rateLimit: "write" },

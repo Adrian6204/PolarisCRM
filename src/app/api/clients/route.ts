@@ -25,9 +25,9 @@ export const GET = withApiRoute(async ({ req, log }) => {
 
 export const POST = withApiRoute(
   async ({ req, log }) => {
-    await requireRole(Role.admin, Role.project_lead);
+    const user = await requireRole(Role.admin, Role.project_lead);
     const input = await parseJson(req, createClientSchema);
-    const client = await createClient(input, { log });
+    const client = await createClient(input, { log, actorId: user.id });
     return ok(client, { status: 201 });
   },
   { rateLimit: "write" },

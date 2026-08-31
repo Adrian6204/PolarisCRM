@@ -24,9 +24,9 @@ export const GET = withApiRoute(async ({ params }) => {
 
 export const PATCH = withApiRoute(
   async ({ req, params, log }) => {
-    await requireRole(Role.admin, Role.project_lead);
+    const user = await requireRole(Role.admin, Role.project_lead);
     const input = await parseJson(req, updateClientSchema);
-    const client = await updateClient(String(params.id), input, { log });
+    const client = await updateClient(String(params.id), input, { log, actorId: user.id });
     return ok(client);
   },
   { rateLimit: "write" },
@@ -34,8 +34,8 @@ export const PATCH = withApiRoute(
 
 export const DELETE = withApiRoute(
   async ({ params, log }) => {
-    await requireRole(Role.admin, Role.project_lead);
-    await softDeleteClient(String(params.id), { log });
+    const user = await requireRole(Role.admin, Role.project_lead);
+    await softDeleteClient(String(params.id), { log, actorId: user.id });
     return ok({ id: params.id, deleted: true });
   },
   { rateLimit: "write" },

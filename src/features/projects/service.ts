@@ -2,16 +2,17 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import { EngagementType } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
-import type { Logger } from "@/lib/logger";
 import { toSkipTake } from "@/lib/validation";
+import { AuditAction, AuditEntityType } from "@prisma/client";
 import { defaultStage, isValidStage } from "./stages";
 import { invalidateServiceLineStats } from "@/features/reports/service";
+import { recordAudit } from "@/features/audit/service";
 import type {
   CreateProjectInput,
   ListProjectsQuery,
   UpdateProjectInput,
 } from "./schema";
-import type { ListResult } from "@/features/clients/service";
+import type { ListResult, WriteOpts } from "@/features/clients/service";
 
 /**
  * Project business logic. Soft-delete-aware like the client service; also owns
@@ -85,7 +86,7 @@ export async function getProject(
 export async function createProject(
   clientId: string,
   input: CreateProjectInput,
-  opts: { db?: Db; log?: Logger } = {},
+  opts: WriteOpts = {},
 ) {
   const db = opts.db ?? defaultPrisma;
   await assertClientActive(db, clientId);
@@ -110,13 +111,25 @@ export async function createProject(
   opts.log?.debug({ projectId: project.id, clientId }, "db write: project created");
   // A new active project changes the dashboard's per-service-line counts.
   await invalidateServiceLineStats();
+  if (opts.actorId) {
+    await recordAudit({
+      entityType: AuditEntityType.project,
+      entityId: project.id,
+      action: AuditAction.create,
+      clientId,
+      actorId: opts.actorId,
+      after: project,
+      db,
+      log: opts.log,
+    });
+  }
   return project;
 }
 
 export async function updateProject(
   id: string,
   input: UpdateProjectInput,
-  opts: { db?: Db; log?: Logger } = {},
+  opts: WriteOpts = {},
 ) {
   const db = opts.db ?? defaultPrisma;
   const existing = await db.project.findFirst({ where: { id, ...notDeleted } });
@@ -142,14 +155,27 @@ export async function updateProject(
   opts.log?.debug({ projectId: id }, "db write: project updated");
   // status changes move counts between/through the active bucket.
   await invalidateServiceLineStats();
+  if (opts.actorId) {
+    await recordAudit({
+      entityType: AuditEntityType.project,
+      entityId: id,
+      action: AuditAction.update,
+      clientId: existing.clientId,
+      actorId: opts.actorId,
+      before: existing,
+      after: project,
+      db,
+      log: opts.log,
+    });
+  }
   return project;
 }
 
-export async function softDeleteProject(
-  id: string,
-  opts: { db?: Db; log?: Logger } = {},
-) {
+export async function softDeleteProject(id: string, opts: WriteOpts = {}) {
   const db = opts.db ?? defaultPrisma;
+  const before = opts.actorId
+    ? await db.project.findFirst({ where: { id, ...notDeleted } })
+    : null;
   const result = await db.project.updateMany({
     where: { id, ...notDeleted },
     data: { deletedAt: new Date() },
@@ -157,4 +183,16 @@ export async function softDeleteProject(
   if (result.count === 0) throw ApiError.notFound("Project not found");
   opts.log?.debug({ projectId: id }, "db write: project soft-deleted");
   await invalidateServiceLineStats();
+  if (opts.actorId && before) {
+    await recordAudit({
+      entityType: AuditEntityType.project,
+      entityId: id,
+      action: AuditAction.delete,
+      clientId: before.clientId,
+      actorId: opts.actorId,
+      before,
+      db,
+      log: opts.log,
+    });
+  }
 }

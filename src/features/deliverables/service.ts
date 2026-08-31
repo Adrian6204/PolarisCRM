@@ -1,9 +1,10 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { AuditAction, AuditEntityType } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
-import type { Logger } from "@/lib/logger";
 import { toSkipTake } from "@/lib/validation";
-import type { ListResult } from "@/features/clients/service";
+import { recordAudit } from "@/features/audit/service";
+import type { ListResult, WriteOpts } from "@/features/clients/service";
 import type {
   CreateDeliverableInput,
   ListDeliverablesQuery,
@@ -23,13 +24,14 @@ const notDeleted = { deletedAt: null } satisfies Prisma.DeliverableWhereInput;
 // project select is light (the global task view shows which project a task is in).
 const relations = {
   owner: { select: { id: true, name: true, email: true } },
-  project: { select: { id: true, name: true } },
+  // clientId is needed to denormalize onto audit rows; UI consumers ignore it.
+  project: { select: { id: true, name: true, clientId: true } },
 } as const;
 
 export type DeliverableWithOwner = Prisma.DeliverableGetPayload<{
   include: {
     owner: { select: { id: true; name: true; email: true } };
-    project: { select: { id: true; name: true } };
+    project: { select: { id: true; name: true; clientId: true } };
   };
 }>;
 
@@ -86,7 +88,7 @@ export async function getDeliverable(id: string, opts: { db?: Db } = {}) {
 export async function createDeliverable(
   projectId: string,
   input: CreateDeliverableInput,
-  opts: { db?: Db; log?: Logger } = {},
+  opts: WriteOpts = {},
 ) {
   const db = opts.db ?? defaultPrisma;
   await assertProjectActive(db, projectId);
@@ -104,18 +106,30 @@ export async function createDeliverable(
     include: relations,
   });
   opts.log?.debug({ deliverableId: deliverable.id, projectId }, "db write: deliverable created");
+  if (opts.actorId) {
+    await recordAudit({
+      entityType: AuditEntityType.deliverable,
+      entityId: deliverable.id,
+      action: AuditAction.create,
+      clientId: deliverable.project.clientId,
+      actorId: opts.actorId,
+      after: deliverable,
+      db,
+      log: opts.log,
+    });
+  }
   return deliverable;
 }
 
 export async function updateDeliverable(
   id: string,
   input: UpdateDeliverableInput,
-  opts: { db?: Db; log?: Logger } = {},
+  opts: WriteOpts = {},
 ) {
   const db = opts.db ?? defaultPrisma;
   const existing = await db.deliverable.findFirst({
     where: { id, ...notDeleted },
-    select: { id: true },
+    include: { project: { select: { clientId: true } } },
   });
   if (!existing) throw ApiError.notFound("Deliverable not found");
   if (input.ownerId !== undefined) await assertOwnerExists(db, input.ownerId);
@@ -126,18 +140,46 @@ export async function updateDeliverable(
     include: relations,
   });
   opts.log?.debug({ deliverableId: id }, "db write: deliverable updated");
+  if (opts.actorId) {
+    await recordAudit({
+      entityType: AuditEntityType.deliverable,
+      entityId: id,
+      action: AuditAction.update,
+      clientId: existing.project.clientId,
+      actorId: opts.actorId,
+      before: existing,
+      after: deliverable,
+      db,
+      log: opts.log,
+    });
+  }
   return deliverable;
 }
 
-export async function softDeleteDeliverable(
-  id: string,
-  opts: { db?: Db; log?: Logger } = {},
-) {
+export async function softDeleteDeliverable(id: string, opts: WriteOpts = {}) {
   const db = opts.db ?? defaultPrisma;
+  const before = opts.actorId
+    ? await db.deliverable.findFirst({
+        where: { id, ...notDeleted },
+        include: { project: { select: { clientId: true } } },
+      })
+    : null;
   const result = await db.deliverable.updateMany({
     where: { id, ...notDeleted },
     data: { deletedAt: new Date() },
   });
   if (result.count === 0) throw ApiError.notFound("Deliverable not found");
   opts.log?.debug({ deliverableId: id }, "db write: deliverable soft-deleted");
+  if (opts.actorId && before) {
+    await recordAudit({
+      entityType: AuditEntityType.deliverable,
+      entityId: id,
+      action: AuditAction.delete,
+      clientId: before.project.clientId,
+      actorId: opts.actorId,
+      before,
+      db,
+      log: opts.log,
+    });
+  }
 }

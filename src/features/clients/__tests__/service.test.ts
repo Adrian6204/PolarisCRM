@@ -22,6 +22,8 @@ function makeDb() {
       create: vi.fn(),
       updateMany: vi.fn(),
     },
+    // Present so the Phase 7 audit path has something to write to.
+    auditLog: { create: vi.fn().mockResolvedValue({ id: "audit1" }) },
   };
 }
 
@@ -74,6 +76,28 @@ describe("createClient", () => {
       { db: db as never },
     );
     expect(out).toEqual({ id: "c1", name: "Acme" });
+  });
+
+  it("records an audit entry when an actor is supplied", async () => {
+    db.client.create.mockResolvedValue({ id: "c1", name: "Acme" });
+    await createClient(
+      { name: "Acme", status: ClientStatus.prospect },
+      { db: db as never, actorId: "user-7" },
+    );
+    expect(db.auditLog.create).toHaveBeenCalledOnce();
+    const data = db.auditLog.create.mock.calls[0][0].data;
+    expect(data).toMatchObject({
+      entityType: "client",
+      entityId: "c1",
+      action: "create",
+      changedById: "user-7",
+    });
+  });
+
+  it("does NOT audit when no actor is supplied", async () => {
+    db.client.create.mockResolvedValue({ id: "c1", name: "Acme" });
+    await createClient({ name: "Acme", status: ClientStatus.prospect }, { db: db as never });
+    expect(db.auditLog.create).not.toHaveBeenCalled();
   });
 });
 

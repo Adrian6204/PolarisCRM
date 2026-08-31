@@ -38,6 +38,7 @@ model User {
 
   ownedDeliverables Deliverable[]
   activities        Activity[]
+  auditLogs         AuditLog[]
 
   @@index([role])
   @@map("users")
@@ -73,6 +74,7 @@ model Client {
   contacts   Contact[]
   projects   Project[]
   activities Activity[]
+  auditLogs  AuditLog[]
 
   // status is frequently filtered in list views; deletedAt gates every read.
   @@index([status])
@@ -246,4 +248,43 @@ model ReportEntry {
   @@unique([projectId, period])
   @@index([projectId])
   @@map("report_entries")
+}
+
+// --- Audit Log (Phase 7) --------------------------------------------------
+
+enum AuditEntityType {
+  client
+  project
+  deliverable
+}
+
+enum AuditAction {
+  create
+  update
+  delete
+}
+
+// Accountability trail for create/update/delete on Client, Project,
+// Deliverable. Append-only; `clientId` is denormalized (the client the changed
+// entity belongs to) so a per-client trail — spanning the client and its
+// projects/deliverables — is a single indexed lookup.
+model AuditLog {
+  id          String          @id @default(cuid())
+  entityType  AuditEntityType @map("entity_type")
+  entityId    String          @map("entity_id")
+  action      AuditAction
+  clientId    String?         @map("client_id")
+  changedById String?         @map("changed_by")
+  // { after } on create, { before } on delete, { field: {from,to} } on update.
+  diff        Json
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  client    Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  changedBy User?   @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  // Per-client trail, newest first; plus per-entity history and by-actor.
+  @@index([clientId, createdAt])
+  @@index([entityType, entityId])
+  @@index([changedById])
+  @@map("audit_logs")
 }
