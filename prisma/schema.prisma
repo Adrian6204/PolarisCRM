@@ -73,13 +73,14 @@ model Client {
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
-  contacts   Contact[]
-  projects   Project[]
-  activities Activity[]
-  auditLogs  AuditLog[]
-  deals      Deal[]
-  notes      Note[]
-  tags       ClientTag[]
+  contacts     Contact[]
+  projects     Project[]
+  activities   Activity[]
+  auditLogs    AuditLog[]
+  deals        Deal[]
+  notes        Note[]
+  tags         ClientTag[]
+  customFields ClientCustomField[]
 
   // status is frequently filtered in list views; deletedAt gates every read.
   @@index([status])
@@ -130,27 +131,27 @@ enum ProjectStatus {
 }
 
 model Project {
-  id       String         @id @default(cuid())
-  clientId String         @map("client_id")
-  name     String
-  serviceType    ServiceType    @map("service_type")
-  engagementType EngagementType @map("engagement_type")
+  id                  String         @id @default(cuid())
+  clientId            String         @map("client_id")
+  name                String
+  serviceType         ServiceType    @map("service_type")
+  engagementType      EngagementType @map("engagement_type")
   // Free-form string: the valid set depends on serviceType (+ engagementType
   // for aigc). Validated in the app against the stage sets in
   // src/features/projects/stages.ts rather than a DB enum, so workflows can
   // evolve without a migration.
-  stage    String
-  startDate DateTime  @map("start_date")
+  stage               String
+  startDate           DateTime       @map("start_date")
   // Null for ongoing retainers with no fixed end.
-  endDate   DateTime? @map("end_date")
+  endDate             DateTime?      @map("end_date")
   // Only meaningful for retainer engagements; renewal automation lands in P5.
-  retainerRenewalDate DateTime? @map("retainer_renewal_date")
-  status   ProjectStatus @default(active)
-  deletedAt DateTime?    @map("deleted_at")
-  createdAt DateTime     @default(now()) @map("created_at")
-  updatedAt DateTime     @updatedAt @map("updated_at")
+  retainerRenewalDate DateTime?      @map("retainer_renewal_date")
+  status              ProjectStatus  @default(active)
+  deletedAt           DateTime?      @map("deleted_at")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   deliverables Deliverable[]
   activities   Activity[]
   reports      ReportEntry[]
@@ -212,19 +213,19 @@ enum ActivityType {
 // Append-only interaction log. No soft delete (SPEC scopes it to
 // Client/Project/Deliverable); erroneous entries are hard-deleted by writers.
 model Activity {
-  id        String       @id @default(cuid())
-  clientId  String       @map("client_id")
+  id          String       @id @default(cuid())
+  clientId    String       @map("client_id")
   // Some activity is client-level, not tied to a specific project.
-  projectId String?      @map("project_id")
-  type      ActivityType
-  summary   String
+  projectId   String?      @map("project_id")
+  type        ActivityType
+  summary     String
   // Who logged it — captured from the session, kept if the user is removed.
-  createdById String?    @map("created_by")
-  createdAt DateTime     @default(now()) @map("created_at")
+  createdById String?      @map("created_by")
+  createdAt   DateTime     @default(now()) @map("created_at")
 
-  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  createdBy User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   // Feed is per-client, newest first; composite covers that access pattern.
   @@index([clientId, createdAt])
@@ -307,20 +308,20 @@ enum DealStage {
 // lead → proposal → won/lost. Soft-deletable (deals are valuable history; a
 // "lost" deal stays as history, deletion is for genuine mistakes only).
 model Deal {
-  id      String    @id @default(cuid())
-  clientId String   @map("client_id")
-  title   String
+  id                String    @id @default(cuid())
+  clientId          String    @map("client_id")
+  title             String
   // Estimated value in whole currency units (e.g. dollars).
-  value   Int       @default(0)
-  stage   DealStage @default(lead)
-  ownerId String?   @map("owner_id")
-  notes   String?
+  value             Int       @default(0)
+  stage             DealStage @default(lead)
+  ownerId           String?   @map("owner_id")
+  notes             String?
   expectedCloseDate DateTime? @map("expected_close_date")
   // Set when the deal reaches a terminal stage (won/lost).
-  closedAt DateTime? @map("closed_at")
-  deletedAt DateTime? @map("deleted_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  closedAt          DateTime? @map("closed_at")
+  deletedAt         DateTime? @map("deleted_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   owner  User?  @relation(fields: [ownerId], references: [id], onDelete: SetNull)
@@ -338,10 +339,10 @@ model Deal {
 // Colored label for segmenting clients (GHL-style). `color` is a key into a
 // small curated tag palette rendered as soft chips (see tag display module).
 model Tag {
-  id        String      @id @default(cuid())
-  name      String      @unique
-  color     String      @default("slate")
-  createdAt DateTime    @default(now()) @map("created_at")
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("slate")
+  createdAt DateTime @default(now()) @map("created_at")
 
   clients ClientTag[]
 
@@ -359,6 +360,52 @@ model ClientTag {
   @@id([clientId, tagId])
   @@index([tagId])
   @@map("client_tags")
+}
+
+// Custom field definitions (GHL-style): an admin-managed schema of extra
+// attributes clients can carry. Values are stored per-client as strings and
+// interpreted according to `type`.
+enum CustomFieldType {
+  text
+  textarea
+  number
+  date
+  boolean
+  url
+  select
+}
+
+model CustomFieldDef {
+  id        String          @id @default(cuid())
+  // Stable machine key (unique); label is the human-facing name.
+  key       String          @unique
+  label     String
+  type      CustomFieldType @default(text)
+  // Choices for `select` fields; empty for other types.
+  options   String[]        @default([])
+  sortOrder Int             @default(0) @map("sort_order")
+  archived  Boolean         @default(false)
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  values ClientCustomField[]
+
+  @@index([archived, sortOrder])
+  @@map("custom_field_defs")
+}
+
+// A single client's value for a definition. Value is serialized text
+// (numbers/dates/booleans stringified) interpreted per the def's type.
+model ClientCustomField {
+  clientId String @map("client_id")
+  fieldId  String @map("field_id")
+  value    String
+
+  client Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  field  CustomFieldDef @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@id([clientId, fieldId])
+  @@index([fieldId])
+  @@map("client_custom_fields")
 }
 
 // Free-form note on a client (distinct from the timestamped Activity log).

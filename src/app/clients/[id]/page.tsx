@@ -9,12 +9,14 @@ import { listProjects } from "@/features/projects/service";
 import { listDeals } from "@/features/deals/service";
 import { getClientTimeline } from "@/features/timeline/service";
 import { tagsForClient, listTags } from "@/features/tags/service";
+import { getClientCustomFields } from "@/features/custom-fields/service";
 import { prisma } from "@/lib/prisma";
 import { serviceTypeLabel, stageLabel } from "@/features/projects/stages";
 import { DeleteClientButton } from "./delete-button";
 import { ContactsSection } from "./contacts-section";
 import { TimelineSection } from "./timeline-section";
 import { TagBar } from "./tag-bar";
+import { CustomFieldsSection } from "./custom-fields-section";
 import { DealsSection } from "./deals-section";
 
 /** Client detail view with contacts + projects (Phase 1–2). */
@@ -33,7 +35,7 @@ export default async function ClientDetailPage({
     throw err;
   });
   const writable = canWrite(user.role);
-  const [{ items: projects }, timeline, { items: deals }, members, clientTags, allTags] =
+  const [{ items: projects }, timeline, { items: deals }, members, clientTags, allTags, customFields] =
     await Promise.all([
       listProjects({ clientId: id, page: 1, pageSize: 100 }),
       getClientTimeline(id),
@@ -44,6 +46,7 @@ export default async function ClientDetailPage({
       }),
       tagsForClient(id),
       listTags(),
+      getClientCustomFields(id),
     ]);
 
   return (
@@ -166,6 +169,8 @@ export default async function ClientDetailPage({
         contacts={client.contacts}
         writable={writable}
       />
+
+      <CustomFieldsSection clientId={client.id} fields={customFields} writable={writable} />
 
       <TimelineSection
         clientId={client.id}

@@ -10,6 +10,7 @@ import {
   IconDeliverables,
   IconPipeline,
   IconAnalytics,
+  IconSettings,
 } from "./icons";
 
 const NAV = [
@@ -19,6 +20,7 @@ const NAV = [
   { href: "/deliverables", label: "Deliverables", icon: IconDeliverables },
   { href: "/pipeline", label: "Pipeline", icon: IconPipeline },
   { href: "/analytics", label: "Analytics", icon: IconAnalytics },
+  { href: "/settings/custom-fields", label: "Settings", icon: IconSettings },
 ] as const;
 
 function isActive(pathname: string, href: string) {
