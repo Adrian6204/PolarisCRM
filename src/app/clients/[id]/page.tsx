@@ -6,13 +6,15 @@ import { ApiError } from "@/lib/errors";
 import { StatusBadge } from "@/components/status-badge";
 import { ProjectStatusBadge } from "@/components/project-status-badge";
 import { listProjects } from "@/features/projects/service";
-import { listActivities } from "@/features/activities/service";
 import { listDeals } from "@/features/deals/service";
+import { getClientTimeline } from "@/features/timeline/service";
+import { tagsForClient, listTags } from "@/features/tags/service";
 import { prisma } from "@/lib/prisma";
 import { serviceTypeLabel, stageLabel } from "@/features/projects/stages";
 import { DeleteClientButton } from "./delete-button";
 import { ContactsSection } from "./contacts-section";
-import { ActivitySection } from "./activity-section";
+import { TimelineSection } from "./timeline-section";
+import { TagBar } from "./tag-bar";
 import { DealsSection } from "./deals-section";
 
 /** Client detail view with contacts + projects (Phase 1–2). */
@@ -31,15 +33,17 @@ export default async function ClientDetailPage({
     throw err;
   });
   const writable = canWrite(user.role);
-  const [{ items: projects }, { items: activities }, { items: deals }, members] =
+  const [{ items: projects }, timeline, { items: deals }, members, clientTags, allTags] =
     await Promise.all([
       listProjects({ clientId: id, page: 1, pageSize: 100 }),
-      listActivities(id, { page: 1, pageSize: 50 }),
+      getClientTimeline(id),
       listDeals({ clientId: id, page: 1, pageSize: 100 }),
       prisma.user.findMany({
         select: { id: true, name: true, email: true },
         orderBy: { name: "asc" },
       }),
+      tagsForClient(id),
+      listTags(),
     ]);
 
   return (
@@ -80,6 +84,9 @@ export default async function ClientDetailPage({
               </dd>
             </div>
           </dl>
+          <div className="mt-1">
+            <TagBar clientId={client.id} tags={clientTags} allTags={allTags} />
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -160,18 +167,11 @@ export default async function ClientDetailPage({
         writable={writable}
       />
 
-      <ActivitySection
+      <TimelineSection
         clientId={client.id}
         writable={writable}
         projects={projects.map((p) => ({ id: p.id, name: p.name }))}
-        activities={activities.map((a) => ({
-          id: a.id,
-          type: a.type,
-          summary: a.summary,
-          createdAt: a.createdAt.toISOString(),
-          createdBy: a.createdBy,
-          project: a.project,
-        }))}
+        events={timeline}
       />
     </div>
   );

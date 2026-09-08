@@ -12,16 +12,20 @@ const STATUSES = ["", "active", "prospect", "past"] as const;
 export function ClientControls({
   initialQ,
   initialStatus,
+  initialTagId,
+  tags,
 }: {
   initialQ: string;
   initialStatus: string;
+  initialTagId: string;
+  tags: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [q, setQ] = useState(initialQ);
   const [, startTransition] = useTransition();
 
-  function apply(next: { q?: string; status?: string }) {
+  function apply(next: { q?: string; status?: string; tagId?: string }) {
     const params = new URLSearchParams(searchParams.toString());
     for (const [key, value] of Object.entries(next)) {
       if (value) params.set(key, value);
@@ -54,6 +58,20 @@ export function ClientControls({
           </option>
         ))}
       </select>
+      {tags.length > 0 && (
+        <select
+          value={initialTagId}
+          onChange={(e) => apply({ tagId: e.target.value })}
+          className="input"
+        >
+          <option value="">All tags</option>
+          {tags.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }

@@ -40,6 +40,7 @@ model User {
   activities        Activity[]
   auditLogs         AuditLog[]
   ownedDeals        Deal[]
+  notes             Note[]
 
   @@index([role])
   @@map("users")
@@ -77,6 +78,8 @@ model Client {
   activities Activity[]
   auditLogs  AuditLog[]
   deals      Deal[]
+  notes      Note[]
+  tags       ClientTag[]
 
   // status is frequently filtered in list views; deletedAt gates every read.
   @@index([status])
@@ -328,4 +331,47 @@ model Deal {
   @@index([ownerId])
   @@index([deletedAt])
   @@map("deals")
+}
+
+// --- CRM depth: tags, notes, timeline (GHL parity — G1) -------------------
+
+// Colored label for segmenting clients (GHL-style). `color` is a key into a
+// small curated tag palette rendered as soft chips (see tag display module).
+model Tag {
+  id        String      @id @default(cuid())
+  name      String      @unique
+  color     String      @default("slate")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  clients ClientTag[]
+
+  @@map("tags")
+}
+
+// Many-to-many: a client carries any number of tags.
+model ClientTag {
+  clientId String @map("client_id")
+  tagId    String @map("tag_id")
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([clientId, tagId])
+  @@index([tagId])
+  @@map("client_tags")
+}
+
+// Free-form note on a client (distinct from the timestamped Activity log).
+model Note {
+  id          String   @id @default(cuid())
+  clientId    String   @map("client_id")
+  body        String
+  createdById String?  @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  client    Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([clientId, createdAt])
+  @@map("notes")
 }

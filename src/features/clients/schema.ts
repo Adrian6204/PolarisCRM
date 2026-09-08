@@ -35,6 +35,8 @@ export const listClientsQuerySchema = paginationSchema.extend({
   status: z.nativeEnum(ClientStatus).optional(),
   // Free-text search over client name (case-insensitive contains).
   q: optionalText(200),
+  // Filter to clients carrying a given tag.
+  tagId: z.string().cuid().optional(),
 });
 
 export type CreateClientInput = z.infer<typeof createClientSchema>;

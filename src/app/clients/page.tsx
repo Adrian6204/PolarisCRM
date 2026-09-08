@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requirePageUser, canWrite } from "@/lib/session";
 import { listClients } from "@/features/clients/service";
 import { listClientsQuerySchema } from "@/features/clients/schema";
+import { listTags } from "@/features/tags/service";
+import { tagChipStyle } from "@/features/tags/display";
 import { ClientControls } from "./client-controls";
 import { StatusBadge } from "@/components/status-badge";
 
@@ -21,7 +23,10 @@ export default async function ClientsPage({
   const raw = await searchParams;
   // Reuse the same schema the API uses, so UI and API validation never drift.
   const query = listClientsQuerySchema.parse(raw);
-  const { items, total } = await listClients(query);
+  const [{ items, total }, tags] = await Promise.all([
+    listClients(query),
+    listTags(),
+  ]);
   const writable = canWrite(user.role);
 
   return (
@@ -41,7 +46,12 @@ export default async function ClientsPage({
         )}
       </div>
 
-      <ClientControls initialQ={query.q ?? ""} initialStatus={query.status ?? ""} />
+      <ClientControls
+        initialQ={query.q ?? ""}
+        initialStatus={query.status ?? ""}
+        initialTagId={query.tagId ?? ""}
+        tags={tags}
+      />
 
       {items.length === 0 ? (
         <p className="empty">
@@ -64,6 +74,19 @@ export default async function ClientsPage({
                     <Link href={`/clients/${c.id}`} className="font-medium hover:text-brand hover:underline">
                       {c.name}
                     </Link>
+                    {c.tags.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {c.tags.map(({ tag }) => (
+                          <span
+                            key={tag.id}
+                            className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-[11px] font-medium"
+                            style={tagChipStyle(tag.color)}
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-muted">{c.industry ?? "—"}</td>
                   <td className="px-4 py-3">

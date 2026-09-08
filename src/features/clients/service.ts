@@ -44,15 +44,20 @@ export interface ListResult<T> {
   pageSize: number;
 }
 
+export type ClientListItem = Prisma.ClientGetPayload<{
+  include: { tags: { include: { tag: true } } };
+}>;
+
 export async function listClients(
   query: ListClientsQuery,
   opts: { db?: Db } = {},
-): Promise<ListResult<Prisma.ClientGetPayload<object>>> {
+): Promise<ListResult<ClientListItem>> {
   const db = opts.db ?? defaultPrisma;
   const where: Prisma.ClientWhereInput = {
     ...notDeleted,
     ...(query.status ? { status: query.status } : {}),
     ...(query.q ? { name: { contains: query.q, mode: "insensitive" } } : {}),
+    ...(query.tagId ? { tags: { some: { tagId: query.tagId } } } : {}),
   };
   const pagination: Pagination = { page: query.page, pageSize: query.pageSize };
 
@@ -62,6 +67,7 @@ export async function listClients(
     db.client.findMany({
       where,
       orderBy: { createdAt: "desc" },
+      include: { tags: { include: { tag: true } } },
       ...toSkipTake(pagination),
     }),
   ]);
