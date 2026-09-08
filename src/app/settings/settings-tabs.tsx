@@ -7,6 +7,7 @@ const TABS = [
   { href: "/settings/custom-fields", label: "Custom fields" },
   { href: "/settings/pipelines", label: "Pipelines" },
   { href: "/settings/availability", label: "Availability" },
+  { href: "/settings/automations", label: "Automations" },
 ];
 
 /** Sub-navigation for the settings area. */

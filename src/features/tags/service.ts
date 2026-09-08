@@ -1,9 +1,11 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { AutomationTrigger } from "@prisma/client";
 import { z } from "zod";
 import { prisma as defaultPrisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
 import type { Logger } from "@/lib/logger";
 import { shortText } from "@/lib/validation";
+import { emitAutomationEvent } from "@/features/automations/emit";
 import { TAG_COLOR_KEYS } from "./display";
 
 /**
@@ -67,14 +69,22 @@ export async function assignTag(
   }
   if (!tagId) throw ApiError.badRequest("tagId or name is required");
 
-  // Idempotent: composite PK means re-assigning is a no-op.
-  await db.clientTag.upsert({
-    where: { clientId_tagId: { clientId, tagId } },
-    create: { clientId, tagId },
-    update: {},
+  // Idempotent: skipDuplicates makes a re-assign a no-op, and count tells us
+  // whether a new association was actually created (so automations fire once).
+  const { count } = await db.clientTag.createMany({
+    data: [{ clientId, tagId }],
+    skipDuplicates: true,
   });
   opts.log?.debug({ clientId, tagId }, "db write: tag assigned");
-  return db.tag.findUnique({ where: { id: tagId } });
+  const tag = await db.tag.findUnique({ where: { id: tagId } });
+  if (!opts.db && count > 0 && tag) {
+    await emitAutomationEvent({
+      trigger: AutomationTrigger.client_tagged,
+      clientId,
+      context: { tagName: tag.name },
+    });
+  }
+  return tag;
 }
 
 export async function unassignTag(

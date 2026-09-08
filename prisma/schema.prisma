@@ -517,3 +517,70 @@ model AvailabilityRule {
   @@index([userId, weekday])
   @@map("availability_rules")
 }
+
+// --- Automation / workflows (G4) ------------------------------------------
+
+// Domain events that can start an automation.
+enum AutomationTrigger {
+  client_created
+  deal_stage_changed
+  deal_won
+  appointment_scheduled
+  client_tagged
+}
+
+// Self-contained side effects an automation can perform (no external services).
+enum AutomationActionType {
+  add_tag
+  create_note
+  log_activity
+}
+
+// A trigger → (optional conditions) → actions rule. Org-wide; admin-managed.
+model Automation {
+  id         String            @id @default(cuid())
+  name       String
+  trigger    AutomationTrigger
+  // Equality conditions on the event payload (e.g. {"stageKind":"won"});
+  // null/empty = always fire. Stored as JSON.
+  conditions Json?
+  active     Boolean           @default(true)
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  actions AutomationAction[]
+  runs    AutomationRun[]
+
+  @@index([trigger, active])
+  @@map("automations")
+}
+
+// One action within an automation, executed in sortOrder. `config` is
+// action-shaped JSON (e.g. {"tag":"VIP"} / {"body":"…"} / {"type":"note","summary":"…"}).
+model AutomationAction {
+  id           String               @id @default(cuid())
+  automationId String               @map("automation_id")
+  type         AutomationActionType
+  config       Json
+  sortOrder    Int                  @default(0) @map("sort_order")
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId])
+  @@map("automation_actions")
+}
+
+// Audit trail of a single automation firing (for observability in the UI).
+model AutomationRun {
+  id           String   @id @default(cuid())
+  automationId String   @map("automation_id")
+  clientId     String?  @map("client_id")
+  // "success" | "skipped" | "error".
+  status       String
+  detail       String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId, createdAt])
+  @@map("automation_runs")
+}

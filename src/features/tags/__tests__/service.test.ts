@@ -10,7 +10,7 @@ function makeDb() {
   return {
     client: { findFirst: vi.fn() },
     tag: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), findUnique: vi.fn() },
-    clientTag: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+    clientTag: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
   };
 }
 
@@ -19,6 +19,7 @@ beforeEach(() => {
   db = makeDb();
   db.client.findFirst.mockResolvedValue({ id: "cl1" });
   db.tag.findUnique.mockResolvedValue({ id: "t1", name: "VIP", color: "amber" });
+  db.clientTag.createMany.mockResolvedValue({ count: 1 });
 });
 
 describe("createTag", () => {
@@ -44,13 +45,13 @@ describe("assignTag", () => {
     await expect(
       assignTag("gone", { tagId: "t1" }, { db: db as never }),
     ).rejects.toMatchObject({ code: "not_found" });
-    expect(db.clientTag.upsert).not.toHaveBeenCalled();
+    expect(db.clientTag.createMany).not.toHaveBeenCalled();
   });
 
-  it("assigns an existing tag by id (idempotent upsert)", async () => {
+  it("assigns an existing tag by id (idempotent create)", async () => {
     await assignTag("cl1", { tagId: "t1" }, { db: db as never });
-    expect(db.clientTag.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { clientId_tagId: { clientId: "cl1", tagId: "t1" } } }),
+    expect(db.clientTag.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: [{ clientId: "cl1", tagId: "t1" }], skipDuplicates: true }),
     );
     expect(db.tag.create).not.toHaveBeenCalled();
   });
@@ -59,7 +60,7 @@ describe("assignTag", () => {
     db.tag.findFirst.mockResolvedValue({ id: "t9" });
     await assignTag("cl1", { name: "vip" }, { db: db as never });
     expect(db.tag.create).not.toHaveBeenCalled();
-    expect(db.clientTag.upsert.mock.calls[0][0].where.clientId_tagId.tagId).toBe("t9");
+    expect(db.clientTag.createMany.mock.calls[0][0].data[0].tagId).toBe("t9");
   });
 
   it("creates the tag when assigning by a new name", async () => {
@@ -67,7 +68,7 @@ describe("assignTag", () => {
     db.tag.create.mockResolvedValue({ id: "t-new" });
     await assignTag("cl1", { name: "Fresh" }, { db: db as never });
     expect(db.tag.create.mock.calls[0][0].data).toMatchObject({ name: "Fresh", color: "slate" });
-    expect(db.clientTag.upsert.mock.calls[0][0].where.clientId_tagId.tagId).toBe("t-new");
+    expect(db.clientTag.createMany.mock.calls[0][0].data[0].tagId).toBe("t-new");
   });
 });
 

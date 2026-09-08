@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
-import { AuditAction, AuditEntityType } from "@prisma/client";
+import { AuditAction, AuditEntityType, AutomationTrigger } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
 import type { Logger } from "@/lib/logger";
@@ -7,6 +7,7 @@ import type { Pagination } from "@/lib/validation";
 import { toSkipTake } from "@/lib/validation";
 import { runInTx } from "@/lib/tx";
 import { auditData } from "@/features/audit/service";
+import { emitAutomationEvent } from "@/features/automations/emit";
 import type {
   CreateClientInput,
   ListClientsQuery,
@@ -126,6 +127,14 @@ export async function createClient(
     return created;
   });
   opts.log?.debug({ clientId: client.id }, "db write: client created");
+  // Fire automations only on the real runtime path (tests inject a db mock).
+  if (!opts.db) {
+    await emitAutomationEvent({
+      trigger: AutomationTrigger.client_created,
+      clientId: client.id,
+      context: { clientName: client.name, status: client.status },
+    });
+  }
   return client;
 }
 

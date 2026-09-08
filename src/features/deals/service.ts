@@ -1,9 +1,10 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
-import { ClientStatus, StageKind } from "@prisma/client";
+import { ClientStatus, StageKind, AutomationTrigger } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
 import type { Logger } from "@/lib/logger";
 import { toSkipTake } from "@/lib/validation";
+import { emitAutomationEvent } from "@/features/automations/emit";
 import type { ListResult } from "@/features/clients/service";
 import type { CreateDealInput, ListDealsQuery, UpdateDealInput } from "./schema";
 
@@ -112,7 +113,23 @@ export async function createDeal(
   });
   opts.log?.debug({ dealId: deal.id, clientId }, "db write: deal created");
   if (stage.kind === StageKind.won) await promoteClientOnWin(db, clientId, opts.log);
+  if (!opts.db) await emitDealEvents(deal, stage.kind === StageKind.won);
   return deal;
+}
+
+/** Emit deal_stage_changed (always) and deal_won (when applicable). */
+async function emitDealEvents(deal: DealWithRefs, becameWon: boolean) {
+  const context = {
+    dealTitle: deal.title,
+    value: deal.value,
+    stageName: deal.stage.name,
+    stageKind: deal.stage.kind,
+    clientName: deal.client.name,
+  };
+  await emitAutomationEvent({ trigger: AutomationTrigger.deal_stage_changed, clientId: deal.clientId, context });
+  if (becameWon) {
+    await emitAutomationEvent({ trigger: AutomationTrigger.deal_won, clientId: deal.clientId, context });
+  }
 }
 
 export async function updateDeal(
@@ -151,6 +168,8 @@ export async function updateDeal(
   const deal = await db.deal.update({ where: { id }, data, include: relations });
   opts.log?.debug({ dealId: id }, "db write: deal updated");
   if (becameWon) await promoteClientOnWin(db, deal.clientId, opts.log);
+  const stageChanged = !!input.stageId && input.stageId !== existing.stageId;
+  if (!opts.db && stageChanged) await emitDealEvents(deal, becameWon);
   return deal;
 }
 

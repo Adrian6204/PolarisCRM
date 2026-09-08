@@ -1,10 +1,11 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus, AutomationTrigger } from "@prisma/client";
 import { z } from "zod";
 import { prisma as defaultPrisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
 import type { Logger } from "@/lib/logger";
 import { shortText, optionalText } from "@/lib/validation";
+import { emitAutomationEvent } from "@/features/automations/emit";
 
 /**
  * Appointment business logic (G3). Times are absolute instants. A host cannot
@@ -132,6 +133,17 @@ export async function createAppointment(input: CreateAppointmentInput, opts: { d
     include: relations,
   });
   opts.log?.debug({ appointmentId: appt.id }, "db write: appointment created");
+  if (!opts.db) {
+    await emitAutomationEvent({
+      trigger: AutomationTrigger.appointment_scheduled,
+      clientId: appt.clientId,
+      context: {
+        appointmentTitle: appt.title,
+        clientName: appt.client?.name ?? null,
+        host: appt.owner.name ?? appt.owner.email,
+      },
+    });
+  }
   return appt;
 }
 
