@@ -11,6 +11,7 @@ import { getClientTimeline } from "@/features/timeline/service";
 import { tagsForClient, listTags } from "@/features/tags/service";
 import { getClientCustomFields } from "@/features/custom-fields/service";
 import { listPipelines } from "@/features/pipelines/service";
+import { listAppointments } from "@/features/appointments/service";
 import { prisma } from "@/lib/prisma";
 import { serviceTypeLabel, stageLabel } from "@/features/projects/stages";
 import { DeleteClientButton } from "./delete-button";
@@ -18,6 +19,7 @@ import { ContactsSection } from "./contacts-section";
 import { TimelineSection } from "./timeline-section";
 import { TagBar } from "./tag-bar";
 import { CustomFieldsSection } from "./custom-fields-section";
+import { AppointmentsSection } from "./appointments-section";
 import { DealsSection } from "./deals-section";
 
 /** Client detail view with contacts + projects (Phase 1–2). */
@@ -36,7 +38,7 @@ export default async function ClientDetailPage({
     throw err;
   });
   const writable = canWrite(user.role);
-  const [{ items: projects }, timeline, { items: deals }, members, clientTags, allTags, customFields, pipelines] =
+  const [{ items: projects }, timeline, { items: deals }, members, clientTags, allTags, customFields, pipelines, appointments] =
     await Promise.all([
       listProjects({ clientId: id, page: 1, pageSize: 100 }),
       getClientTimeline(id),
@@ -49,6 +51,7 @@ export default async function ClientDetailPage({
       listTags(),
       getClientCustomFields(id),
       listPipelines(),
+      listAppointments({ clientId: id }),
     ]);
 
   return (
@@ -181,6 +184,26 @@ export default async function ClientDetailPage({
       />
 
       <CustomFieldsSection clientId={client.id} fields={customFields} writable={writable} />
+
+      <AppointmentsSection
+        client={{ id: client.id, name: client.name, contacts: client.contacts.map((c) => ({ id: c.id, name: c.name })) }}
+        hosts={members}
+        writable={writable}
+        appointments={appointments.map((a) => ({
+          id: a.id,
+          title: a.title,
+          startAt: a.startAt.toISOString(),
+          endAt: a.endAt.toISOString(),
+          status: a.status,
+          ownerId: a.ownerId,
+          ownerName: a.owner.name ?? a.owner.email,
+          clientId: a.clientId,
+          clientName: a.client?.name ?? null,
+          contactId: a.contactId,
+          location: a.location,
+          notes: a.notes,
+        }))}
+      />
 
       <TimelineSection
         clientId={client.id}

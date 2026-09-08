@@ -10,6 +10,7 @@ import {
   IconDeliverables,
   IconPipeline,
   IconAnalytics,
+  IconCalendar,
   IconSettings,
 } from "./icons";
 
@@ -19,6 +20,7 @@ const NAV = [
   { href: "/projects", label: "Projects", icon: IconProjects },
   { href: "/deliverables", label: "Deliverables", icon: IconDeliverables },
   { href: "/pipeline", label: "Pipeline", icon: IconPipeline },
+  { href: "/calendar", label: "Calendar", icon: IconCalendar },
   { href: "/analytics", label: "Analytics", icon: IconAnalytics },
   { href: "/settings", label: "Settings", icon: IconSettings },
 ] as const;

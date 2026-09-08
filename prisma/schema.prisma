@@ -41,6 +41,8 @@ model User {
   auditLogs         AuditLog[]
   ownedDeals        Deal[]
   notes             Note[]
+  appointments      Appointment[]
+  availabilityRules AvailabilityRule[]
 
   @@index([role])
   @@map("users")
@@ -81,6 +83,7 @@ model Client {
   notes        Note[]
   tags         ClientTag[]
   customFields ClientCustomField[]
+  appointments Appointment[]
 
   // status is frequently filtered in list views; deletedAt gates every read.
   @@index([status])
@@ -101,7 +104,8 @@ model Contact {
 
   // Contacts are hard-deleted with their client (cascade); the SPEC scopes
   // soft delete to Client/Project/Deliverable only.
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
 
   // FK index (SPEC: index FKs as tables are created, not retrofitted).
   @@index([clientId])
@@ -460,4 +464,56 @@ model Note {
 
   @@index([clientId, createdAt])
   @@map("notes")
+}
+
+// --- Calendar & appointments (G3) -----------------------------------------
+
+enum AppointmentStatus {
+  scheduled
+  completed
+  cancelled
+  no_show
+}
+
+// A scheduled meeting hosted by a user, optionally tied to a client/contact.
+// Times are stored as absolute instants (UTC); the UI renders in local time.
+model Appointment {
+  id        String            @id @default(cuid())
+  title     String
+  ownerId   String            @map("owner_id")
+  clientId  String?           @map("client_id")
+  contactId String?           @map("contact_id")
+  startAt   DateTime          @map("start_at")
+  endAt     DateTime          @map("end_at")
+  location  String?
+  notes     String?
+  status    AppointmentStatus @default(scheduled)
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  client  Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  // Calendar reads are windowed by host + time; client detail lists by client.
+  @@index([ownerId, startAt])
+  @@index([clientId, startAt])
+  @@index([startAt])
+  @@map("appointments")
+}
+
+// A recurring weekly availability window for a host (used to compute bookable
+// slots). Minutes are minutes-from-midnight in the host's local day.
+model AvailabilityRule {
+  id       String @id @default(cuid())
+  userId   String @map("user_id")
+  // 0 = Sunday … 6 = Saturday.
+  weekday  Int
+  startMin Int    @map("start_min")
+  endMin   Int    @map("end_min")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, weekday])
+  @@map("availability_rules")
 }

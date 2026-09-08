@@ -114,6 +114,15 @@ export function IconChevronRight({ className }: IconProps) {
   );
 }
 
+export function IconCalendar({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <rect x="3" y="4.5" width="18" height="16" rx="2" />
+      <path d="M3 9h18M8 2.5v4M16 2.5v4" />
+    </svg>
+  );
+}
+
 export function IconSettings({ className }: IconProps) {
   return (
     <svg {...base} className={className}>
