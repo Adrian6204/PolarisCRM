@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 import { getServiceLineStats } from "@/features/reports/service";
 import { getPipelineStats } from "@/features/deals/service";
+import { cacheGetOrSet } from "@/lib/cache";
 
 /**
  * Analytics aggregations for the /analytics page. One entry point runs every
@@ -31,7 +32,18 @@ export interface Analytics {
   clientsByStatus: { status: ClientStatus; count: number }[];
 }
 
+/**
+ * Cached analytics. The page fires 11 rollups; each DB round-trip is ~0.7s to a
+ * remote region, so a short-TTL cache turns warm loads into a single Redis read.
+ * A 45s TTL keeps figures fresh enough for an analytics view without wiring
+ * per-entity invalidation (it tolerates minor staleness). Degrades to a live
+ * compute when Redis is unconfigured.
+ */
 export async function getAnalytics(): Promise<Analytics> {
+  return cacheGetOrSet("cache:analytics", 45, computeAnalytics);
+}
+
+async function computeAnalytics(): Promise<Analytics> {
   const now = new Date();
 
   const [
