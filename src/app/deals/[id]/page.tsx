@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePageUser, canWrite } from "@/lib/session";
 import { getDeal } from "@/features/deals/service";
+import { getPipeline } from "@/features/pipelines/service";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
 import { DealEditor } from "./deal-editor";
@@ -23,10 +24,14 @@ export default async function DealDetailPage({
     if (err instanceof ApiError && err.code === "not_found") notFound();
     throw err;
   });
-  const members = await prisma.user.findMany({
-    select: { id: true, name: true, email: true },
-    orderBy: { name: "asc" },
-  });
+  const [members, pipeline] = await Promise.all([
+    prisma.user.findMany({
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+    getPipeline(deal.pipelineId),
+  ]);
+  const stageOptions = pipeline.stages.map((s) => ({ id: s.id, name: s.name }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -45,11 +50,13 @@ export default async function DealDetailPage({
       <DealEditor
         writable={canWrite(user.role)}
         members={members}
+        pipelineName={pipeline.name}
+        stageOptions={stageOptions}
         deal={{
           id: deal.id,
           title: deal.title,
           value: deal.value,
-          stage: deal.stage,
+          stageId: deal.stageId,
           ownerId: deal.ownerId,
           notes: deal.notes ?? "",
           expectedCloseDate: dateInput(deal.expectedCloseDate),

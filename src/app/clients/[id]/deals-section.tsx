@@ -3,36 +3,43 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { DealStage } from "@prisma/client";
+import { StageKind } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
-import {
-  DEAL_STAGES,
-  DEAL_STAGE_LABELS,
-  DEAL_STAGE_STYLES,
-  formatMoney,
-} from "@/features/deals/display";
+import { STAGE_KIND_STYLES, formatMoney } from "@/features/deals/display";
 import { DealStageSelect } from "@/app/pipeline/deal-stage-select";
+
+export interface PipelineView {
+  id: string;
+  name: string;
+  stages: { id: string; name: string }[];
+}
 
 export interface DealView {
   id: string;
   title: string;
   value: number;
-  stage: DealStage;
+  pipelineId: string;
+  stageId: string;
+  stageName: string;
+  stageKind: StageKind;
   owner: { name: string | null; email: string } | null;
 }
 
 /**
- * Deals for a client (Phase 8) — list with inline stage moves + a quick-add
- * form. Winning a deal promotes a prospect client to active (server-side).
+ * Deals for a client — list with inline stage moves + a quick-add form.
+ * A deal is opened on a chosen pipeline + stage. Winning a deal (a `won` stage)
+ * promotes a prospect client to active (server-side).
  */
 export function DealsSection({
   clientId,
   deals,
+  pipelines,
   members,
   writable,
 }: {
   clientId: string;
   deals: DealView[];
+  pipelines: PipelineView[];
   members: { id: string; name: string | null; email: string }[];
   writable: boolean;
 }) {
@@ -51,8 +58,9 @@ export function DealsSection({
   }
 
   const totalOpen = deals
-    .filter((d) => d.stage === DealStage.lead || d.stage === DealStage.proposal)
+    .filter((d) => d.stageKind === StageKind.open)
     .reduce((sum, d) => sum + d.value, 0);
+  const stagesFor = (pipelineId: string) => pipelines.find((p) => p.id === pipelineId)?.stages ?? [];
 
   return (
     <section className="flex flex-col gap-4">
@@ -60,12 +68,10 @@ export function DealsSection({
         <h2 className="text-lg font-semibold">
           Deals{" "}
           {totalOpen > 0 && (
-            <span className="text-sm font-normal text-muted">
-              · {formatMoney(totalOpen)} open
-            </span>
+            <span className="text-sm font-normal text-muted">· {formatMoney(totalOpen)} open</span>
           )}
         </h2>
-        {writable && !adding && (
+        {writable && !adding && pipelines.length > 0 && (
           <button onClick={() => setAdding(true)} className="text-sm link hover:underline">
             + Add deal
           </button>
@@ -76,6 +82,7 @@ export function DealsSection({
 
       {adding && (
         <AddDealForm
+          pipelines={pipelines}
           members={members}
           onCancel={() => setAdding(false)}
           onSubmit={(values) =>
@@ -103,8 +110,8 @@ export function DealsSection({
                   <Link href={`/deals/${d.id}`} className="font-medium hover:underline">
                     {d.title}
                   </Link>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${DEAL_STAGE_STYLES[d.stage]}`}>
-                    {DEAL_STAGE_LABELS[d.stage]}
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STAGE_KIND_STYLES[d.stageKind]}`}>
+                    {d.stageName}
                   </span>
                 </div>
                 <span className="text-sm text-muted">
@@ -113,7 +120,11 @@ export function DealsSection({
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                {writable && <div className="w-32"><DealStageSelect dealId={d.id} stage={d.stage} /></div>}
+                {writable && (
+                  <div className="w-32">
+                    <DealStageSelect dealId={d.id} stageId={d.stageId} stages={stagesFor(d.pipelineId)} />
+                  </div>
+                )}
                 {writable && (
                   <button
                     onClick={() => {
@@ -135,41 +146,60 @@ export function DealsSection({
 }
 
 function AddDealForm({
+  pipelines,
   members,
   onCancel,
   onSubmit,
 }: {
+  pipelines: PipelineView[];
   members: { id: string; name: string | null; email: string }[];
   onCancel: () => void;
   onSubmit: (values: {
     title: string;
     value: number;
-    stage: DealStage;
+    pipelineId: string;
+    stageId: string;
     ownerId: string | null;
   }) => void;
 }) {
   const [title, setTitle] = useState("");
   const [value, setValue] = useState("");
-  const [stage, setStage] = useState<DealStage>(DealStage.lead);
+  const [pipelineId, setPipelineId] = useState(pipelines[0]?.id ?? "");
+  const stages = pipelines.find((p) => p.id === pipelineId)?.stages ?? [];
+  const [stageId, setStageId] = useState(stages[0]?.id ?? "");
   const [ownerId, setOwnerId] = useState("");
+
+  function onPipeline(id: string) {
+    setPipelineId(id);
+    // Reset the stage to the new pipeline's first stage.
+    setStageId(pipelines.find((p) => p.id === id)?.stages[0]?.id ?? "");
+  }
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ title, value: Number(value) || 0, stage, ownerId: ownerId || null });
+        if (!stageId) return;
+        onSubmit({ title, value: Number(value) || 0, pipelineId, stageId, ownerId: ownerId || null });
       }}
       className="flex flex-col gap-3 rounded border border-line p-4"
     >
-      <input required placeholder="Deal title" value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
-      <div className="grid grid-cols-3 gap-3">
-        <input type="number" min="0" placeholder="Value ($)" value={value} onChange={(e) => setValue(e.target.value)} className={inputClass} />
-        <select value={stage} onChange={(e) => setStage(e.target.value as DealStage)} className={inputClass}>
-          {DEAL_STAGES.map((s) => (
-            <option key={s} value={s}>{DEAL_STAGE_LABELS[s]}</option>
+      <input required placeholder="Deal title" value={title} onChange={(e) => setTitle(e.target.value)} className="input" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <input type="number" min="0" placeholder="Value ($)" value={value} onChange={(e) => setValue(e.target.value)} className="input" />
+        {pipelines.length > 1 && (
+          <select value={pipelineId} onChange={(e) => onPipeline(e.target.value)} className="input">
+            {pipelines.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        )}
+        <select value={stageId} onChange={(e) => setStageId(e.target.value)} className="input">
+          {stages.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
-        <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className={inputClass}>
+        <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="input">
           <option value="">Unassigned</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>{m.name ?? m.email}</option>
@@ -177,16 +207,9 @@ function AddDealForm({
         </select>
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" className="btn btn-primary !py-1.5">
-          Add
-        </button>
-        <button type="button" onClick={onCancel} className="btn btn-ghost">
-          Cancel
-        </button>
+        <button type="submit" className="btn btn-primary !py-1.5">Add</button>
+        <button type="button" onClick={onCancel} className="btn btn-ghost">Cancel</button>
       </div>
     </form>
   );
 }
-
-const inputClass =
-  "input";

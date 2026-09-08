@@ -297,38 +297,77 @@ model AuditLog {
 
 // --- Sales Pipeline (Phase 8) ---------------------------------------------
 
-enum DealStage {
-  lead
-  proposal
+// Terminal semantics of a pipeline stage. `won` promotes a prospect client to
+// active and stamps closedAt; `lost` stamps closedAt; `open` is in-progress.
+enum StageKind {
+  open
   won
   lost
 }
 
-// A sales opportunity for a client, moving through the pipeline
-// lead → proposal → won/lost. Soft-deletable (deals are valuable history; a
-// "lost" deal stays as history, deletion is for genuine mistakes only).
+// A named sales pipeline (GHL-style). Deals move through its ordered stages.
+// One pipeline is flagged default for views (dashboard, analytics) that show a
+// single funnel.
+model Pipeline {
+  id        String   @id @default(cuid())
+  name      String
+  sortOrder Int      @default(0) @map("sort_order")
+  archived  Boolean  @default(false)
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  stages PipelineStage[]
+  deals  Deal[]
+
+  @@index([archived, sortOrder])
+  @@map("pipelines")
+}
+
+// An ordered stage within a pipeline. `kind` carries terminal semantics so
+// win/lost behaviour survives arbitrary stage names.
+model PipelineStage {
+  id         String    @id @default(cuid())
+  pipelineId String    @map("pipeline_id")
+  name       String
+  kind       StageKind @default(open)
+  sortOrder  Int       @default(0) @map("sort_order")
+
+  pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  deals    Deal[]
+
+  @@index([pipelineId, sortOrder])
+  @@map("pipeline_stages")
+}
+
+// A sales opportunity for a client, living on one pipeline stage.
+// Soft-deletable (deals are valuable history; a "lost" deal stays as history,
+// deletion is for genuine mistakes only).
 model Deal {
   id                String    @id @default(cuid())
   clientId          String    @map("client_id")
+  pipelineId        String    @map("pipeline_id")
+  stageId           String    @map("stage_id")
   title             String
   // Estimated value in whole currency units (e.g. dollars).
   value             Int       @default(0)
-  stage             DealStage @default(lead)
   ownerId           String?   @map("owner_id")
   notes             String?
   expectedCloseDate DateTime? @map("expected_close_date")
-  // Set when the deal reaches a terminal stage (won/lost).
+  // Set when the deal reaches a terminal stage (kind won/lost).
   closedAt          DateTime? @map("closed_at")
   deletedAt         DateTime? @map("deleted_at")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  owner  User?  @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  client   Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  owner    User?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  pipeline Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Restrict)
+  stage    PipelineStage @relation(fields: [stageId], references: [id], onDelete: Restrict)
 
   // FK + fields filtered in the pipeline board; deletedAt gates reads.
   @@index([clientId])
-  @@index([stage])
+  @@index([pipelineId])
+  @@index([stageId])
   @@index([ownerId])
   @@index([deletedAt])
   @@map("deals")

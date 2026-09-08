@@ -1,13 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import {
   ProjectStatus,
-  DealStage,
+  StageKind,
   DeliverableStatus,
   ClientStatus,
   ServiceType,
 } from "@prisma/client";
 import { getServiceLineStats } from "@/features/reports/service";
-import { getPipelineStats } from "@/features/deals/service";
+import { getPipelineStats, type StageStat } from "@/features/deals/service";
 import { cacheGetOrSet } from "@/lib/cache";
 
 /**
@@ -25,7 +25,7 @@ export interface Analytics {
     deliverablesDone: number;
     deliverablesTotal: number;
   };
-  pipelineByStage: { stage: DealStage; value: number; count: number }[];
+  pipelineByStage: StageStat[];
   serviceLines: { serviceType: ServiceType; active: number }[];
   deliverablesByStatus: { status: DeliverableStatus; count: number }[];
   workload: { name: string; count: number }[];
@@ -51,7 +51,8 @@ async function computeAnalytics(): Promise<Analytics> {
     activeProjects,
     openAgg,
     overdue,
-    dealStageCounts,
+    won,
+    lost,
     delivStatus,
     delivByOwner,
     clientStatus,
@@ -63,12 +64,13 @@ async function computeAnalytics(): Promise<Analytics> {
     prisma.project.count({ where: { status: ProjectStatus.active, deletedAt: null } }),
     prisma.deal.aggregate({
       _sum: { value: true },
-      where: { deletedAt: null, stage: { in: [DealStage.lead, DealStage.proposal] } },
+      where: { deletedAt: null, stage: { kind: StageKind.open } },
     }),
     prisma.deliverable.count({
       where: { deletedAt: null, status: { not: DeliverableStatus.done }, dueDate: { lt: now } },
     }),
-    prisma.deal.groupBy({ by: ["stage"], where: { deletedAt: null }, _count: { _all: true } }),
+    prisma.deal.count({ where: { deletedAt: null, stage: { kind: StageKind.won } } }),
+    prisma.deal.count({ where: { deletedAt: null, stage: { kind: StageKind.lost } } }),
     prisma.deliverable.groupBy({ by: ["status"], where: { deletedAt: null }, _count: { _all: true } }),
     prisma.deliverable.groupBy({
       by: ["ownerId"],
@@ -80,11 +82,6 @@ async function computeAnalytics(): Promise<Analytics> {
     getServiceLineStats(),
     getPipelineStats(),
   ]);
-
-  const dealCount = (s: DealStage) =>
-    dealStageCounts.find((d) => d.stage === s)?._count._all ?? 0;
-  const won = dealCount(DealStage.won);
-  const lost = dealCount(DealStage.lost);
 
   // Deliverable status counts in canonical order (0-filled).
   const DELIV_ORDER: DeliverableStatus[] = [

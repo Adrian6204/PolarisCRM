@@ -2,9 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { DealStage } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
-import { DEAL_STAGES, DEAL_STAGE_LABELS } from "@/features/deals/display";
 
 const inputClass =
   "input";
@@ -13,7 +11,7 @@ export interface EditableDeal {
   id: string;
   title: string;
   value: number;
-  stage: DealStage;
+  stageId: string;
   ownerId: string | null;
   notes: string;
   expectedCloseDate: string; // YYYY-MM-DD or ""
@@ -22,10 +20,14 @@ export interface EditableDeal {
 export function DealEditor({
   deal,
   members,
+  pipelineName,
+  stageOptions,
   writable,
 }: {
   deal: EditableDeal;
   members: { id: string; name: string | null; email: string }[];
+  pipelineName: string;
+  stageOptions: { id: string; name: string }[];
   writable: boolean;
 }) {
   const router = useRouter();
@@ -49,7 +51,7 @@ export function DealEditor({
         body: JSON.stringify({
           title: form.title,
           value: form.value,
-          stage: form.stage,
+          stageId: form.stageId,
           ownerId: form.ownerId || null,
           notes: form.notes || null,
           expectedCloseDate: form.expectedCloseDate || null,
@@ -86,10 +88,10 @@ export function DealEditor({
         <Field label="Value ($)">
           <input type="number" min="0" value={form.value} disabled={readonly} onChange={(e) => set("value", Number(e.target.value) || 0)} className={inputClass} />
         </Field>
-        <Field label="Stage">
-          <select value={form.stage} disabled={readonly} onChange={(e) => set("stage", e.target.value as DealStage)} className={inputClass}>
-            {DEAL_STAGES.map((s) => (
-              <option key={s} value={s}>{DEAL_STAGE_LABELS[s]}</option>
+        <Field label={`Stage · ${pipelineName}`}>
+          <select value={form.stageId} disabled={readonly} onChange={(e) => set("stageId", e.target.value)} className={inputClass}>
+            {stageOptions.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
         </Field>

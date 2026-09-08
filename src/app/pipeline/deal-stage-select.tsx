@@ -2,35 +2,36 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { DealStage } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
-import { DEAL_STAGES, DEAL_STAGE_LABELS } from "@/features/deals/display";
 
 /**
- * Inline stage picker for a deal card. PATCHes the stage and refreshes so the
- * board re-buckets. Moving to "won" promotes a prospect client server-side.
+ * Inline stage picker for a deal card. PATCHes the stageId and refreshes so the
+ * board re-buckets. Moving to a `won` stage promotes a prospect client
+ * server-side. Options are the deal's own pipeline stages.
  */
 export function DealStageSelect({
   dealId,
-  stage,
+  stageId,
+  stages,
   disabled,
 }: {
   dealId: string;
-  stage: DealStage;
+  stageId: string;
+  stages: { id: string; name: string }[];
   disabled?: boolean;
 }) {
   const router = useRouter();
-  const [value, setValue] = useState(stage);
+  const [value, setValue] = useState(stageId);
   const [saving, setSaving] = useState(false);
 
-  async function onChange(next: DealStage) {
+  async function onChange(next: string) {
     const prev = value;
     setValue(next);
     setSaving(true);
     try {
       await apiFetch(`/api/deals/${dealId}`, {
         method: "PATCH",
-        body: JSON.stringify({ stage: next }),
+        body: JSON.stringify({ stageId: next }),
       });
       router.refresh();
     } catch (err) {
@@ -45,12 +46,12 @@ export function DealStageSelect({
     <select
       value={value}
       disabled={disabled || saving}
-      onChange={(e) => onChange(e.target.value as DealStage)}
+      onChange={(e) => onChange(e.target.value)}
       className="w-full rounded border border-line bg-transparent px-1.5 py-1 text-xs disabled:opacity-60"
     >
-      {DEAL_STAGES.map((s) => (
-        <option key={s} value={s}>
-          {DEAL_STAGE_LABELS[s]}
+      {stages.map((s) => (
+        <option key={s.id} value={s.id}>
+          {s.name}
         </option>
       ))}
     </select>

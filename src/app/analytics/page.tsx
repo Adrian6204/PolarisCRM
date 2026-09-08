@@ -1,7 +1,7 @@
 import { requirePageUser } from "@/lib/session";
 import { getAnalytics } from "@/features/analytics/service";
 import { serviceTypeLabel } from "@/features/projects/stages";
-import { DEAL_STAGE_LABELS, formatMoney } from "@/features/deals/display";
+import { formatMoney } from "@/features/deals/display";
 import { DELIVERABLE_STATUS_LABELS } from "@/features/deliverables/status";
 import { MagnitudeBars, CategoryBars } from "./charts";
 import { StatTile, ChartCard, CompositionBar } from "./parts";
@@ -27,7 +27,7 @@ export default async function AnalyticsPage() {
 
   // Each tier gets its own step from the monochrome categorical scale.
   const pipelineData = a.pipelineByStage.map((p, i) => ({
-    label: DEAL_STAGE_LABELS[p.stage],
+    label: p.name,
     value: p.value,
     fill: catFill(i),
   }));

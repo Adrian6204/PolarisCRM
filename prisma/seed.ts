@@ -16,7 +16,7 @@ import {
   ProjectStatus,
   DeliverableStatus,
   ActivityType,
-  DealStage,
+  StageKind,
 } from "@prisma/client";
 import { hashPassword } from "../src/lib/auth";
 import { defaultStage } from "../src/features/projects/stages";
@@ -244,25 +244,51 @@ async function main() {
     console.log("seeded report entry (SEO Retainer 2026-08)");
   }
 
+  // Ensure a default "Sales" pipeline with the canonical stage set.
+  let pipeline = await prisma.pipeline.findFirst({
+    where: { isDefault: true },
+    include: { stages: true },
+  });
+  if (!pipeline) {
+    pipeline = await prisma.pipeline.create({
+      data: {
+        name: "Sales",
+        isDefault: true,
+        stages: {
+          create: [
+            { name: "Lead", kind: StageKind.open, sortOrder: 0 },
+            { name: "Proposal", kind: StageKind.open, sortOrder: 1 },
+            { name: "Won", kind: StageKind.won, sortOrder: 2 },
+            { name: "Lost", kind: StageKind.lost, sortOrder: 3 },
+          ],
+        },
+      },
+      include: { stages: true },
+    });
+    console.log("seeded default pipeline (Sales)");
+  }
+  const stageByName = new Map(pipeline.stages.map((s) => [s.name, s]));
+
   // Sample deals for the pipeline. Idempotent by (client, title). No 'won'
   // deals so seeded client statuses stay as-is.
   const DEALS: Array<{
     client: string;
     title: string;
     value: number;
-    stage: DealStage;
+    stageName: string;
     ownerEmail?: string;
     expectedCloseDate?: string;
-    closed?: boolean;
   }> = [
-    { client: "Acme Software", title: "Retainer proposal", value: 12000, stage: DealStage.proposal, ownerEmail: "lead@polaris.dev", expectedCloseDate: "2026-10-15" },
-    { client: "Northwind Retail", title: "Phase 2 expansion", value: 20000, stage: DealStage.lead, ownerEmail: "lead@polaris.dev", expectedCloseDate: "2026-11-30" },
-    { client: "Helios Media", title: "Re-engagement", value: 5000, stage: DealStage.lost, closed: true },
+    { client: "Acme Software", title: "Retainer proposal", value: 12000, stageName: "Proposal", ownerEmail: "lead@polaris.dev", expectedCloseDate: "2026-10-15" },
+    { client: "Northwind Retail", title: "Phase 2 expansion", value: 20000, stageName: "Lead", ownerEmail: "lead@polaris.dev", expectedCloseDate: "2026-11-30" },
+    { client: "Helios Media", title: "Re-engagement", value: 5000, stageName: "Lost" },
   ];
 
   for (const d of DEALS) {
     const client = await prisma.client.findFirst({ where: { name: d.client } });
     if (!client) continue;
+    const stage = stageByName.get(d.stageName);
+    if (!stage) continue;
     const existing = await prisma.deal.findFirst({
       where: { clientId: client.id, title: d.title },
     });
@@ -276,15 +302,16 @@ async function main() {
     await prisma.deal.create({
       data: {
         clientId: client.id,
+        pipelineId: pipeline.id,
+        stageId: stage.id,
         title: d.title,
         value: d.value,
-        stage: d.stage,
         ownerId: owner?.id ?? null,
         expectedCloseDate: d.expectedCloseDate ? new Date(d.expectedCloseDate) : null,
-        closedAt: d.closed ? new Date() : null,
+        closedAt: stage.kind === StageKind.lost || stage.kind === StageKind.won ? new Date() : null,
       },
     });
-    console.log(`seeded deal ${d.title} (${d.stage})`);
+    console.log(`seeded deal ${d.title} (${d.stageName})`);
   }
 }
 

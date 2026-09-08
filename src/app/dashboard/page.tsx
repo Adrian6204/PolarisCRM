@@ -3,8 +3,9 @@ import { requirePageUser } from "@/lib/session";
 import { getUpcomingRenewals } from "@/features/renewals/service";
 import { getServiceLineStats } from "@/features/reports/service";
 import { getPipelineStats } from "@/features/deals/service";
+import { StageKind } from "@prisma/client";
 import { serviceTypeLabel, SERVICE_TYPES } from "@/features/projects/stages";
-import { DEAL_STAGES, DEAL_STAGE_LABELS, formatMoney } from "@/features/deals/display";
+import { formatMoney } from "@/features/deals/display";
 import { IconChevronRight } from "@/components/icons";
 
 /** Dashboard — renewals, service-line load, and pipeline at a glance. */
@@ -25,11 +26,10 @@ export default async function DashboardPage() {
     getServiceLineStats(),
     getPipelineStats(),
   ]);
-  const pipelineByStage = new Map(pipeline.map((p) => [p.stage, p]));
   const counts = new Map(serviceLines.map((s) => [s.serviceType, s.active]));
   const totalActive = serviceLines.reduce((n, s) => n + s.active, 0);
   const pipelineTotal = pipeline
-    .filter((p) => p.stage === "lead" || p.stage === "proposal")
+    .filter((p) => p.kind === StageKind.open)
     .reduce((n, p) => n + p.value, 0);
   const greeting = user.email.split("@")[0];
 
@@ -69,17 +69,14 @@ export default async function DashboardPage() {
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-stagger>
-          {DEAL_STAGES.map((s) => {
-            const stat = pipelineByStage.get(s);
-            return (
-              <Link key={s} href="/pipeline" className="card flex flex-col gap-1 p-4 transition-colors hover:border-line-strong">
-                <span className="font-mono-nums text-xl font-semibold tabular-nums">{formatMoney(stat?.value ?? 0)}</span>
-                <span className="text-xs font-medium text-muted">
-                  {DEAL_STAGE_LABELS[s]} · <span className="font-mono-nums">{stat?.count ?? 0}</span>
-                </span>
-              </Link>
-            );
-          })}
+          {pipeline.map((stat) => (
+            <Link key={stat.stageId} href="/pipeline" className="card flex flex-col gap-1 p-4 transition-colors hover:border-line-strong">
+              <span className="font-mono-nums text-xl font-semibold tabular-nums">{formatMoney(stat.value)}</span>
+              <span className="text-xs font-medium text-muted">
+                {stat.name} · <span className="font-mono-nums">{stat.count}</span>
+              </span>
+            </Link>
+          ))}
         </div>
         <p className="text-xs text-muted">
           <span className="font-mono-nums font-medium text-fg">{formatMoney(pipelineTotal)}</span> in open opportunities.

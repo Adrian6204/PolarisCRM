@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
-import { ClientStatus, DealStage } from "@prisma/client";
+import { ClientStatus, StageKind } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
 import type { Logger } from "@/lib/logger";
@@ -8,9 +8,10 @@ import type { ListResult } from "@/features/clients/service";
 import type { CreateDealInput, ListDealsQuery, UpdateDealInput } from "./schema";
 
 /**
- * Deal / sales-pipeline business logic (Phase 8). Soft-delete-aware. Terminal
- * stages (won/lost) stamp closedAt; winning a deal promotes a still-prospect
- * client to active — the pre-contract → contract transition the SPEC calls out.
+ * Deal / sales-pipeline business logic. Deals live on a pipeline stage; the
+ * stage's `kind` carries terminal semantics — reaching a `won`/`lost` stage
+ * stamps closedAt, and winning promotes a still-prospect client to active (the
+ * pre-contract → contract transition the SPEC calls out). Soft-delete-aware.
  */
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -19,16 +20,11 @@ const notDeleted = { deletedAt: null } satisfies Prisma.DealWhereInput;
 const relations = {
   owner: { select: { id: true, name: true, email: true } },
   client: { select: { id: true, name: true, status: true } },
+  stage: { select: { id: true, name: true, kind: true, pipelineId: true, sortOrder: true } },
+  pipeline: { select: { id: true, name: true } },
 } as const;
 
-export type DealWithRefs = Prisma.DealGetPayload<{
-  include: {
-    owner: { select: { id: true; name: true; email: true } };
-    client: { select: { id: true; name: true; status: true } };
-  };
-}>;
-
-const TERMINAL: DealStage[] = [DealStage.won, DealStage.lost];
+export type DealWithRefs = Prisma.DealGetPayload<{ include: typeof relations }>;
 
 async function assertClientActive(db: Db, clientId: string) {
   const client = await db.client.findFirst({
@@ -44,6 +40,20 @@ async function assertOwnerExists(db: Db, ownerId: string | null | undefined) {
   if (!user) throw ApiError.badRequest("owner is not a valid user");
 }
 
+/** Resolve a stage, ensuring it belongs to the given pipeline. Returns kind. */
+async function resolveStage(db: Db, pipelineId: string, stageId: string) {
+  const stage = await db.pipelineStage.findUnique({
+    where: { id: stageId },
+    select: { id: true, pipelineId: true, kind: true },
+  });
+  if (!stage || stage.pipelineId !== pipelineId) {
+    throw ApiError.badRequest("stage does not belong to the pipeline");
+  }
+  return stage;
+}
+
+const isTerminal = (kind: StageKind) => kind === StageKind.won || kind === StageKind.lost;
+
 export async function listDeals(
   query: ListDealsQuery,
   opts: { db?: Db } = {},
@@ -52,7 +62,8 @@ export async function listDeals(
   const where: Prisma.DealWhereInput = {
     ...notDeleted,
     ...(query.clientId ? { clientId: query.clientId } : {}),
-    ...(query.stage ? { stage: query.stage } : {}),
+    ...(query.pipelineId ? { pipelineId: query.pipelineId } : {}),
+    ...(query.stageId ? { stageId: query.stageId } : {}),
     ...(query.ownerId ? { ownerId: query.ownerId } : {}),
     ...(query.q ? { title: { contains: query.q, mode: "insensitive" } } : {}),
   };
@@ -83,23 +94,24 @@ export async function createDeal(
   const db = opts.db ?? defaultPrisma;
   await assertClientActive(db, clientId);
   await assertOwnerExists(db, input.ownerId);
+  const stage = await resolveStage(db, input.pipelineId, input.stageId);
 
   const deal = await db.deal.create({
     data: {
       clientId,
+      pipelineId: input.pipelineId,
+      stageId: input.stageId,
       title: input.title,
       value: input.value,
-      stage: input.stage,
       ownerId: input.ownerId ?? null,
       notes: input.notes ?? null,
       expectedCloseDate: input.expectedCloseDate ?? null,
-      // If created directly in a terminal stage, stamp the close date.
-      closedAt: TERMINAL.includes(input.stage) ? new Date() : null,
+      closedAt: isTerminal(stage.kind) ? new Date() : null,
     },
     include: relations,
   });
   opts.log?.debug({ dealId: deal.id, clientId }, "db write: deal created");
-  if (deal.stage === DealStage.won) await promoteClientOnWin(db, clientId, opts.log);
+  if (stage.kind === StageKind.won) await promoteClientOnWin(db, clientId, opts.log);
   return deal;
 }
 
@@ -109,31 +121,40 @@ export async function updateDeal(
   opts: { db?: Db; log?: Logger } = {},
 ) {
   const db = opts.db ?? defaultPrisma;
-  const existing = await db.deal.findFirst({ where: { id, ...notDeleted } });
+  const existing = await db.deal.findFirst({
+    where: { id, ...notDeleted },
+    include: { stage: { select: { kind: true } } },
+  });
   if (!existing) throw ApiError.notFound("Deal not found");
   if (input.ownerId !== undefined) await assertOwnerExists(db, input.ownerId);
 
-  // Maintain closedAt when the stage moves in/out of a terminal state.
-  const data: Prisma.DealUpdateInput = { ...input };
-  if (input.stage && input.stage !== existing.stage) {
-    const nowTerminal = TERMINAL.includes(input.stage);
-    const wasTerminal = TERMINAL.includes(existing.stage);
+  const data: Prisma.DealUpdateInput = {
+    ...(input.title !== undefined ? { title: input.title } : {}),
+    ...(input.value !== undefined ? { value: input.value } : {}),
+    ...(input.ownerId !== undefined ? { owner: input.ownerId ? { connect: { id: input.ownerId } } : { disconnect: true } } : {}),
+    ...(input.notes !== undefined ? { notes: input.notes } : {}),
+    ...(input.expectedCloseDate !== undefined ? { expectedCloseDate: input.expectedCloseDate } : {}),
+  };
+
+  let becameWon = false;
+  if (input.stageId && input.stageId !== existing.stageId) {
+    // Move within the deal's own pipeline (stage must belong to it).
+    const stage = await resolveStage(db, existing.pipelineId, input.stageId);
+    data.stage = { connect: { id: input.stageId } };
+    const nowTerminal = isTerminal(stage.kind);
+    const wasTerminal = isTerminal(existing.stage.kind);
     if (nowTerminal && !wasTerminal) data.closedAt = new Date();
     else if (!nowTerminal && wasTerminal) data.closedAt = null;
+    becameWon = stage.kind === StageKind.won && existing.stage.kind !== StageKind.won;
   }
 
   const deal = await db.deal.update({ where: { id }, data, include: relations });
   opts.log?.debug({ dealId: id }, "db write: deal updated");
-  if (input.stage === DealStage.won && existing.stage !== DealStage.won) {
-    await promoteClientOnWin(db, deal.clientId, opts.log);
-  }
+  if (becameWon) await promoteClientOnWin(db, deal.clientId, opts.log);
   return deal;
 }
 
-export async function softDeleteDeal(
-  id: string,
-  opts: { db?: Db; log?: Logger } = {},
-) {
+export async function softDeleteDeal(id: string, opts: { db?: Db; log?: Logger } = {}) {
   const db = opts.db ?? defaultPrisma;
   const result = await db.deal.updateMany({
     where: { id, ...notDeleted },
@@ -143,19 +164,45 @@ export async function softDeleteDeal(
   opts.log?.debug({ dealId: id }, "db write: deal soft-deleted");
 }
 
-/** Aggregate pipeline: count + total value per stage (non-deleted). */
-export async function getPipelineStats(opts: { db?: Db } = {}) {
+export interface StageStat {
+  stageId: string;
+  name: string;
+  kind: StageKind;
+  sortOrder: number;
+  count: number;
+  value: number;
+}
+
+/**
+ * Per-stage count + total value for a pipeline (defaults to the default
+ * pipeline). Returns every stage in board order, zero-filled — so empty stages
+ * still render as columns.
+ */
+export async function getPipelineStats(
+  pipelineId?: string,
+  opts: { db?: Db } = {},
+): Promise<StageStat[]> {
   const db = opts.db ?? defaultPrisma;
+  const pipeline = pipelineId
+    ? await db.pipeline.findUnique({ where: { id: pipelineId }, include: { stages: { orderBy: { sortOrder: "asc" } } } })
+    : (await db.pipeline.findFirst({ where: { isDefault: true }, include: { stages: { orderBy: { sortOrder: "asc" } } } })) ??
+      (await db.pipeline.findFirst({ where: { archived: false }, include: { stages: { orderBy: { sortOrder: "asc" } } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }));
+  if (!pipeline) return [];
+
   const grouped = await db.deal.groupBy({
-    by: ["stage"],
-    where: notDeleted,
+    by: ["stageId"],
+    where: { ...notDeleted, pipelineId: pipeline.id },
     _count: { _all: true },
     _sum: { value: true },
   });
-  return grouped.map((g) => ({
-    stage: g.stage,
-    count: g._count._all,
-    value: g._sum.value ?? 0,
+  const byStage = new Map(grouped.map((g) => [g.stageId, g]));
+  return pipeline.stages.map((s) => ({
+    stageId: s.id,
+    name: s.name,
+    kind: s.kind,
+    sortOrder: s.sortOrder,
+    count: byStage.get(s.id)?._count._all ?? 0,
+    value: byStage.get(s.id)?._sum.value ?? 0,
   }));
 }
 

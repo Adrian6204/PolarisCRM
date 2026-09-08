@@ -10,6 +10,7 @@ import { listDeals } from "@/features/deals/service";
 import { getClientTimeline } from "@/features/timeline/service";
 import { tagsForClient, listTags } from "@/features/tags/service";
 import { getClientCustomFields } from "@/features/custom-fields/service";
+import { listPipelines } from "@/features/pipelines/service";
 import { prisma } from "@/lib/prisma";
 import { serviceTypeLabel, stageLabel } from "@/features/projects/stages";
 import { DeleteClientButton } from "./delete-button";
@@ -35,7 +36,7 @@ export default async function ClientDetailPage({
     throw err;
   });
   const writable = canWrite(user.role);
-  const [{ items: projects }, timeline, { items: deals }, members, clientTags, allTags, customFields] =
+  const [{ items: projects }, timeline, { items: deals }, members, clientTags, allTags, customFields, pipelines] =
     await Promise.all([
       listProjects({ clientId: id, page: 1, pageSize: 100 }),
       getClientTimeline(id),
@@ -47,6 +48,7 @@ export default async function ClientDetailPage({
       tagsForClient(id),
       listTags(),
       getClientCustomFields(id),
+      listPipelines(),
     ]);
 
   return (
@@ -155,11 +157,19 @@ export default async function ClientDetailPage({
         clientId={client.id}
         writable={writable}
         members={members}
+        pipelines={pipelines.map((p) => ({
+          id: p.id,
+          name: p.name,
+          stages: p.stages.map((s) => ({ id: s.id, name: s.name })),
+        }))}
         deals={deals.map((d) => ({
           id: d.id,
           title: d.title,
           value: d.value,
-          stage: d.stage,
+          pipelineId: d.pipelineId,
+          stageId: d.stageId,
+          stageName: d.stage.name,
+          stageKind: d.stage.kind,
           owner: d.owner,
         }))}
       />

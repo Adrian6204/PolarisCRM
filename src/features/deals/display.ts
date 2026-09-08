@@ -1,25 +1,16 @@
-import { DealStage } from "@prisma/client";
+import { StageKind } from "@prisma/client";
 
-/** Pipeline stages in board order. */
-export const DEAL_STAGES: readonly DealStage[] = [
-  DealStage.lead,
-  DealStage.proposal,
-  DealStage.won,
-  DealStage.lost,
-];
-
-export const DEAL_STAGE_LABELS: Record<DealStage, string> = {
-  lead: "Lead",
-  proposal: "Proposal",
-  won: "Won",
-  lost: "Lost",
-};
-
-export const DEAL_STAGE_STYLES: Record<DealStage, string> = {
-  lead: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-  proposal: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+/** Soft chip style per stage kind (open / won / lost), theme-adaptive. */
+export const STAGE_KIND_STYLES: Record<StageKind, string> = {
+  open: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
   won: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
   lost: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+};
+
+export const STAGE_KIND_LABELS: Record<StageKind, string> = {
+  open: "Open",
+  won: "Won",
+  lost: "Lost",
 };
 
 /** Format a whole-currency-unit amount as compact USD (no cents). */
