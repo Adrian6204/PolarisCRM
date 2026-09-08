@@ -68,6 +68,11 @@ export const authOptions: NextAuthOptions = {
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user?.passwordHash) return null;
         if (!(await verifyPassword(credentials.password, user.passwordHash))) return null;
+        // Deactivated accounts keep their history but cannot sign in.
+        if (!user.active) {
+          logger.warn({ email }, "login denied: account deactivated");
+          throw new Error("This account has been deactivated.");
+        }
         return { id: user.id, email: user.email, name: user.name, role: user.role };
       },
     }),
