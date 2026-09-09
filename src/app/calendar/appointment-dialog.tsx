@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AppointmentStatus } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { SimpleSelect } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useConfirm } from "@/components/confirm";
 import { APPOINTMENT_STATUS_LABELS, formatTime } from "@/features/appointments/display";
 import type { AppointmentVM, HostVM, ClientVM } from "./calendar-view";
@@ -121,9 +122,9 @@ export function AppointmentDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card flex max-h-[90vh] w-full max-w-lg flex-col gap-4 overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold">{editing ? "Edit appointment" : "New appointment"}</h2>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogTitle>{editing ? "Edit appointment" : "New appointment"}</DialogTitle>
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted">Title</span>
@@ -249,7 +250,7 @@ export function AppointmentDialog({
             </button>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
