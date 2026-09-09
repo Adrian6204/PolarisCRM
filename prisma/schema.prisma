@@ -542,13 +542,20 @@ model AvailabilityRule {
 
 // --- Automation / workflows (G4) ------------------------------------------
 
-// Domain events that can start an automation.
+// Domain events that can start an automation. The `task_overdue` and
+// `appointment_upcoming` triggers are time-based, fired once per entity by the
+// scheduled reminder scan; the rest fire inline from the matching write.
 enum AutomationTrigger {
   client_created
+  contact_added
+  project_created
   deal_stage_changed
   deal_won
+  deal_lost
   appointment_scheduled
+  appointment_upcoming
   client_tagged
+  task_overdue
 }
 
 // Self-contained side effects an automation can perform (no external services).
@@ -556,6 +563,7 @@ enum AutomationActionType {
   add_tag
   create_note
   log_activity
+  notify
 }
 
 // A trigger → (optional conditions) → actions rule. Org-wide; admin-managed.

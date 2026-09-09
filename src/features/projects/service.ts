@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
-import { EngagementType } from "@prisma/client";
+import { EngagementType, AutomationTrigger } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/prisma";
+import { emitAutomationEvent } from "@/features/automations/emit";
 import { ApiError } from "@/lib/errors";
 import { toSkipTake } from "@/lib/validation";
 import { AuditAction, AuditEntityType } from "@prisma/client";
@@ -126,6 +127,14 @@ export async function createProject(
   opts.log?.debug({ projectId: project.id, clientId }, "db write: project created");
   // Post-commit: a new active project changes the per-service-line counts.
   await invalidateServiceLineStats();
+  if (!opts.db) {
+    const client = await defaultPrisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
+    await emitAutomationEvent({
+      trigger: AutomationTrigger.project_created,
+      clientId,
+      context: { projectName: project.name, serviceType: project.serviceType, clientName: client?.name ?? "" },
+    });
+  }
   return project;
 }
 

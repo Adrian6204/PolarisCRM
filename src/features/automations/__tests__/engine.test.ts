@@ -15,6 +15,8 @@ function makeDb() {
     clientTag: { upsert: vi.fn() },
     note: { create: vi.fn() },
     activity: { create: vi.fn() },
+    user: { findMany: vi.fn().mockResolvedValue([]) },
+    notification: { create: vi.fn() },
   };
 }
 
@@ -75,6 +77,21 @@ describe("actions", () => {
       { db: db as never },
     );
     expect(db.note.create.mock.calls[0][0].data.body).toBe("Welcome Acme!");
+  });
+
+  it("notify creates a notification for each active admin with templated text", async () => {
+    db.user.findMany.mockResolvedValue([{ id: "adm1" }, { id: "adm2" }]);
+    db.notification.create.mockResolvedValue({ id: "n1" });
+    db.automation.findMany.mockResolvedValue([
+      rule({ actions: [{ type: AutomationActionType.notify, config: { title: "Won: {{dealTitle}}", body: "by {{clientName}}" } }] }),
+    ]);
+    await runAutomations(
+      { trigger: AutomationTrigger.deal_won, clientId: "cl1", context: { dealTitle: "Big", clientName: "Acme" } },
+      { db: db as never },
+    );
+    expect(db.notification.create).toHaveBeenCalledTimes(2);
+    expect(db.notification.create.mock.calls[0][0].data).toMatchObject({ userId: "adm1", title: "Won: Big", body: "by Acme", href: "/clients/cl1" });
+    expect(db.automationRun.create.mock.calls[0][0].data.status).toBe("success");
   });
 
   it("records an error run when an action has no client to target", async () => {

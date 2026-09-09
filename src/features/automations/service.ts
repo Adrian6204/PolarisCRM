@@ -24,6 +24,7 @@ const actionSchema = z.discriminatedUnion("type", [
     summary: shortText(500),
     activityType: z.enum(ACTIVITY_TYPES).default(ActivityType.note),
   }),
+  z.object({ type: z.literal(AutomationActionType.notify), title: shortText(120), body: shortText(500).optional() }),
 ]);
 
 export const createAutomationSchema = z.object({

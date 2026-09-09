@@ -28,6 +28,7 @@ const ACTIVITY_TYPES = Object.values(ActivityType);
 function actionSummary(a: ActionV): string {
   if (a.type === AutomationActionType.add_tag) return `Add tag "${a.config.tag}"`;
   if (a.type === AutomationActionType.create_note) return `Create note: ${String(a.config.body).slice(0, 40)}…`;
+  if (a.type === AutomationActionType.notify) return `Notify admins: ${String(a.config.title).slice(0, 40)}`;
   return `Log ${a.config.type ?? "note"}: ${String(a.config.summary).slice(0, 40)}…`;
 }
 
@@ -164,6 +165,7 @@ function CreateForm({
     const config =
       type === AutomationActionType.add_tag ? { tag: "" }
       : type === AutomationActionType.create_note ? { body: "" }
+      : type === AutomationActionType.notify ? { title: "", body: "" }
       : { summary: "", activityType: ActivityType.note };
     setAction(i, { type, config });
   }
@@ -175,6 +177,7 @@ function CreateForm({
     const flatActions = actions.map((a) => {
       if (a.type === AutomationActionType.add_tag) return { type: a.type, tag: String(a.config.tag ?? "") };
       if (a.type === AutomationActionType.create_note) return { type: a.type, body: String(a.config.body ?? "") };
+      if (a.type === AutomationActionType.notify) return { type: a.type, title: String(a.config.title ?? ""), body: a.config.body ? String(a.config.body) : undefined };
       return { type: a.type, summary: String(a.config.summary ?? ""), activityType: String(a.config.activityType ?? ActivityType.note) };
     });
     onCreate({ name: name.trim(), trigger, conditions, active: true, actions: flatActions });
@@ -236,6 +239,12 @@ function CreateForm({
             )}
             {a.type === AutomationActionType.create_note && (
               <input value={String(a.config.body ?? "")} onChange={(e) => setAction(i, { config: { body: e.target.value } })} placeholder="Note body" className="input flex-1 !min-w-48" />
+            )}
+            {a.type === AutomationActionType.notify && (
+              <>
+                <input value={String(a.config.title ?? "")} onChange={(e) => setAction(i, { config: { ...a.config, title: e.target.value } })} placeholder="Alert title" className="input !w-48" />
+                <input value={String(a.config.body ?? "")} onChange={(e) => setAction(i, { config: { ...a.config, body: e.target.value } })} placeholder="Body (optional)" className="input flex-1 !min-w-40" />
+              </>
             )}
             {a.type === AutomationActionType.log_activity && (
               <>

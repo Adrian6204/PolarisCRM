@@ -1,7 +1,9 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { AutomationTrigger } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/errors";
 import type { Logger } from "@/lib/logger";
+import { emitAutomationEvent } from "@/features/automations/emit";
 import type { CreateContactInput, UpdateContactInput } from "./schema";
 
 /**
@@ -50,9 +52,16 @@ export async function createContact(
     return contact;
   };
   // Reuse an ambient transaction if one was injected (tests), else open one.
-  return opts.db
-    ? run(opts.db)
-    : defaultPrisma.$transaction((tx) => run(tx));
+  if (opts.db) return run(opts.db);
+  const contact = await defaultPrisma.$transaction((tx) => run(tx));
+  // Fire automations only on the real runtime path (tests inject a db).
+  const client = await defaultPrisma.client.findUnique({ where: { id: clientId }, select: { name: true } });
+  await emitAutomationEvent({
+    trigger: AutomationTrigger.contact_added,
+    clientId,
+    context: { contactName: contact.name, contactEmail: contact.email, clientName: client?.name ?? "" },
+  });
+  return contact;
 }
 
 export async function updateContact(

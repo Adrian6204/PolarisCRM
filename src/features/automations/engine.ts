@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
-import { AutomationTrigger, AutomationActionType, ActivityType } from "@prisma/client";
+import { AutomationTrigger, AutomationActionType, ActivityType, Role } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/prisma";
 import type { Logger } from "@/lib/logger";
 
@@ -75,6 +75,18 @@ async function runAction(
         : ActivityType.note;
       await db.activity.create({ data: { clientId, type: activityType, summary, createdById: null } });
       return `activity logged (${activityType})`;
+    }
+    case AutomationActionType.notify: {
+      // Org-wide alert: notify every active admin (self-contained, no channels).
+      const title = template(String(config.title ?? "Automation"), ctx).trim() || "Automation";
+      const body = config.body ? template(String(config.body), ctx) : null;
+      const admins = await db.user.findMany({ where: { role: Role.admin, active: true }, select: { id: true } });
+      for (const a of admins) {
+        await db.notification.create({
+          data: { userId: a.id, type: "automation", title, body, href: clientId ? `/clients/${clientId}` : null },
+        });
+      }
+      return `notified ${admins.length} admin(s)`;
     }
     default:
       throw new Error(`unknown action type: ${type}`);

@@ -117,7 +117,7 @@ export async function createDeal(
   return deal;
 }
 
-/** Emit deal_stage_changed (always) and deal_won (when applicable). */
+/** Emit deal_stage_changed (always) and deal_won / deal_lost by stage kind. */
 async function emitDealEvents(deal: DealWithRefs, becameWon: boolean) {
   const context = {
     dealTitle: deal.title,
@@ -129,6 +129,8 @@ async function emitDealEvents(deal: DealWithRefs, becameWon: boolean) {
   await emitAutomationEvent({ trigger: AutomationTrigger.deal_stage_changed, clientId: deal.clientId, context });
   if (becameWon) {
     await emitAutomationEvent({ trigger: AutomationTrigger.deal_won, clientId: deal.clientId, context });
+  } else if (deal.stage.kind === StageKind.lost) {
+    await emitAutomationEvent({ trigger: AutomationTrigger.deal_lost, clientId: deal.clientId, context });
   }
 }
 
