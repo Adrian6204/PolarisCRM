@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AppointmentStatus } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConfirm } from "@/components/confirm";
 import { APPOINTMENT_STATUS_LABELS, formatTime } from "@/features/appointments/display";
 import type { AppointmentVM, HostVM, ClientVM } from "./calendar-view";
 
@@ -44,6 +45,7 @@ export function AppointmentDialog({
   onSaved: () => void;
 }) {
   const editing = !!initial;
+  const confirm = useConfirm();
   const todayIso = new Date().toISOString().slice(0, 10);
 
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -107,7 +109,7 @@ export function AppointmentDialog({
   }
 
   async function remove() {
-    if (!initial || !confirm("Delete this appointment?")) return;
+    if (!initial || !(await confirm({ title: "Delete this appointment?", confirmLabel: "Delete", destructive: true }))) return;
     setBusy(true);
     try {
       await apiFetch(`/api/appointments/${initial.id}`, { method: "DELETE" });

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ActivityType } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConfirm } from "@/components/confirm";
 import type { TimelineEvent } from "@/features/timeline/service";
 
 const NO_PROJECT = "__none";
@@ -35,6 +36,7 @@ export function TimelineSection({
   writable: boolean;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [mode, setMode] = useState<"activity" | "note">("activity");
   const [error, setError] = useState<string | null>(null);
 
@@ -112,8 +114,8 @@ export function TimelineSection({
                     <time dateTime={e.at}>{new Date(e.at).toLocaleString()}</time>
                     {writable && (
                       <button
-                        onClick={() => {
-                          if (!confirm("Delete this entry?")) return;
+                        onClick={async () => {
+                          if (!(await confirm({ title: "Delete this entry?", confirmLabel: "Delete", destructive: true }))) return;
                           const url = e.kind === "note" ? `/api/notes/${e.id}` : `/api/activities/${e.id}`;
                           run(() => apiFetch(url, { method: "DELETE" }));
                         }}

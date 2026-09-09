@@ -5,6 +5,7 @@ import { useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { SimpleSelect } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useConfirm } from "@/components/confirm";
 
 type ContactRole = "decision_maker" | "technical_poc" | "billing" | "other";
 
@@ -40,6 +41,7 @@ export function ContactsSection({
   writable: boolean;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,8 +111,8 @@ export function ContactsSection({
                     </button>
                   )}
                   <button
-                    onClick={() => {
-                      if (!confirm(`Remove ${c.name}?`)) return;
+                    onClick={async () => {
+                      if (!(await confirm({ title: `Remove ${c.name}?`, confirmLabel: "Remove", destructive: true }))) return;
                       run(() =>
                         apiFetch(`/api/clients/${clientId}/contacts/${c.id}`, {
                           method: "DELETE",

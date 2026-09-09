@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DeliverableStatus } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { toast } from "@/components/ui/toaster";
 import { SimpleSelect } from "@/components/ui/select";
 import {
   DELIVERABLE_STATUSES,
@@ -35,7 +36,7 @@ export function TaskRow({ task }: { task: TaskRowData }) {
       });
       router.refresh();
     } catch (err) {
-      alert(err instanceof ApiClientError ? err.message : "Failed to update.");
+      toast.error(err instanceof ApiClientError ? err.message : "Failed to update.");
     }
   }
 

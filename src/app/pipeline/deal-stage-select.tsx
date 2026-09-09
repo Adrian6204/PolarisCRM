@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { toast } from "@/components/ui/toaster";
 import { SimpleSelect } from "@/components/ui/select";
 
 /**
@@ -37,7 +38,7 @@ export function DealStageSelect({
       router.refresh();
     } catch (err) {
       setValue(prev);
-      alert(err instanceof ApiClientError ? err.message : "Failed to update stage.");
+      toast.error(err instanceof ApiClientError ? err.message : "Failed to update stage.");
     } finally {
       setSaving(false);
     }

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { DeliverableStatus } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConfirm } from "@/components/confirm";
 
 const UNASSIGNED = "__unassigned";
 import {
@@ -45,6 +46,7 @@ export function DeliverablesSection({
   writable: boolean;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,8 +104,8 @@ export function DeliverablesSection({
                         }),
                       )
                     }
-                    onDelete={() => {
-                      if (!confirm(`Delete "${d.title}"?`)) return;
+                    onDelete={async () => {
+                      if (!(await confirm({ title: `Delete "${d.title}"?`, confirmLabel: "Delete", destructive: true }))) return;
                       run(() => apiFetch(`/api/deliverables/${d.id}`, { method: "DELETE" }));
                     }}
                   />

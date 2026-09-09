@@ -5,6 +5,7 @@ import { useState } from "react";
 import { CustomFieldType } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConfirm } from "@/components/confirm";
 
 interface Def {
   id: string;
@@ -78,6 +79,7 @@ export function FieldsManager({ isAdmin, initialDefs }: { isAdmin: boolean; init
 }
 
 function FieldRow({ def, isAdmin, run }: { def: Def; isAdmin: boolean; run: (fn: () => Promise<unknown>) => void }) {
+  const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(def.label);
   const [sortOrder, setSortOrder] = useState(String(def.sortOrder));
@@ -116,8 +118,8 @@ function FieldRow({ def, isAdmin, run }: { def: Def; isAdmin: boolean; run: (fn:
               {def.archived ? "Unarchive" : "Archive"}
             </button>
             <button
-              onClick={() => {
-                if (confirm(`Delete "${def.label}" and all its values? This cannot be undone.`))
+              onClick={async () => {
+                if (await confirm({ title: `Delete "${def.label}"?`, description: "This deletes the field and all its values. This cannot be undone.", confirmLabel: "Delete", destructive: true }))
                   run(() => apiFetch(`/api/custom-fields/${def.id}`, { method: "DELETE" }));
               }}
               className="text-red-600 hover:underline dark:text-red-400"

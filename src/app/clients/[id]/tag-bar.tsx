@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { toast } from "@/components/ui/toaster";
 import { tagChipStyle } from "@/features/tags/display";
 
 export interface TagView {
@@ -45,7 +46,7 @@ export function TagBar({
       setAdding(false);
       router.refresh();
     } catch (err) {
-      alert(err instanceof ApiClientError ? err.message : "Failed to add tag.");
+      toast.error(err instanceof ApiClientError ? err.message : "Failed to add tag.");
     } finally {
       setBusy(false);
     }
@@ -56,7 +57,7 @@ export function TagBar({
       await apiFetch(`/api/clients/${clientId}/tags/${tagId}`, { method: "DELETE" });
       router.refresh();
     } catch (err) {
-      alert(err instanceof ApiClientError ? err.message : "Failed to remove tag.");
+      toast.error(err instanceof ApiClientError ? err.message : "Failed to remove tag.");
     }
   }
 

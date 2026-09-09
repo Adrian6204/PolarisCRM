@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AutomationTrigger, AutomationActionType, ActivityType } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConfirm } from "@/components/confirm";
 import { TRIGGER_LABELS, ACTION_LABELS, TRIGGER_TOKENS } from "@/features/automations/display";
 
 const ALWAYS = "__always";
@@ -40,6 +41,7 @@ export function AutomationsManager({
   runs: RunV[];
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
@@ -92,7 +94,7 @@ export function AutomationsManager({
                       {a.active ? "Pause" : "Activate"}
                     </button>
                     <button
-                      onClick={() => { if (confirm(`Delete automation "${a.name}"?`)) run(() => apiFetch(`/api/automations/${a.id}`, { method: "DELETE" })); }}
+                      onClick={async () => { if (await confirm({ title: `Delete automation "${a.name}"?`, confirmLabel: "Delete", destructive: true })) run(() => apiFetch(`/api/automations/${a.id}`, { method: "DELETE" })); }}
                       className="text-red-600 hover:underline dark:text-red-400"
                     >
                       Delete

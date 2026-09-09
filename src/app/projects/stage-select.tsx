@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ServiceType, EngagementType } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { toast } from "@/components/ui/toaster";
 import { SimpleSelect } from "@/components/ui/select";
 import { stagesFor, stageLabel } from "@/features/projects/stages";
 
@@ -42,7 +43,7 @@ export function StageSelect({
       router.refresh();
     } catch (err) {
       setValue(prev); // revert on failure
-      alert(err instanceof ApiClientError ? err.message : "Failed to update stage.");
+      toast.error(err instanceof ApiClientError ? err.message : "Failed to update stage.");
     } finally {
       setSaving(false);
     }

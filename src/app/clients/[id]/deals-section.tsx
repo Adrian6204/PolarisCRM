@@ -8,6 +8,7 @@ import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { STAGE_KIND_STYLES, formatMoney } from "@/features/deals/display";
 import { DealStageSelect } from "@/app/pipeline/deal-stage-select";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConfirm } from "@/components/confirm";
 
 const UNASSIGNED = "__unassigned";
 
@@ -47,6 +48,7 @@ export function DealsSection({
   writable: boolean;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -130,8 +132,8 @@ export function DealsSection({
                 )}
                 {writable && (
                   <button
-                    onClick={() => {
-                      if (!confirm(`Delete deal "${d.title}"?`)) return;
+                    onClick={async () => {
+                      if (!(await confirm({ title: `Delete deal "${d.title}"?`, confirmLabel: "Delete", destructive: true }))) return;
                       run(() => apiFetch(`/api/deals/${d.id}`, { method: "DELETE" }));
                     }}
                     className="text-xs text-red-600 hover:underline dark:text-red-400"

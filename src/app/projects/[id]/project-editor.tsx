@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ServiceType, EngagementType, ProjectStatus } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConfirm } from "@/components/confirm";
 import { stagesFor, stageLabel } from "@/features/projects/stages";
 
 const inputClass =
@@ -36,6 +37,7 @@ export function ProjectEditor({
   writable: boolean;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [form, setForm] = useState(project);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -74,7 +76,7 @@ export function ProjectEditor({
   }
 
   async function onDelete() {
-    if (!confirm(`Delete project "${form.name}"? It can be restored by an admin.`)) return;
+    if (!(await confirm({ title: `Delete project "${form.name}"?`, description: "It can be restored by an admin.", confirmLabel: "Delete", destructive: true }))) return;
     setPending(true);
     try {
       await apiFetch(`/api/projects/${project.id}`, { method: "DELETE" });

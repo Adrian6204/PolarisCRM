@@ -5,6 +5,7 @@ import { useState } from "react";
 import { StageKind } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConfirm } from "@/components/confirm";
 import { STAGE_KIND_LABELS } from "@/features/deals/display";
 
 interface StageV {
@@ -77,6 +78,7 @@ function PipelineCard({
   isAdmin: boolean;
   run: (fn: () => Promise<unknown>) => void;
 }) {
+  const confirm = useConfirm();
   const [name, setName] = useState(pipeline.name);
   const [newStage, setNewStage] = useState("");
   const p = pipeline;
@@ -116,8 +118,8 @@ function PipelineCard({
               {p.archived ? "Unarchive" : "Archive"}
             </button>
             <button
-              onClick={() => {
-                if (confirm(`Delete pipeline "${p.name}"? This cannot be undone.`))
+              onClick={async () => {
+                if (await confirm({ title: `Delete pipeline "${p.name}"?`, description: "This cannot be undone.", confirmLabel: "Delete", destructive: true }))
                   run(() => apiFetch(`/api/pipelines/${p.id}`, { method: "DELETE" }));
               }}
               className="text-red-600 hover:underline dark:text-red-400"

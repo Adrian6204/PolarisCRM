@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConfirm } from "@/components/confirm";
 
 const inputClass =
   "input";
@@ -33,6 +34,7 @@ export function DealEditor({
   writable: boolean;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [form, setForm] = useState(deal);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -69,7 +71,7 @@ export function DealEditor({
   }
 
   async function onDelete() {
-    if (!confirm(`Delete deal "${form.title}"?`)) return;
+    if (!(await confirm({ title: `Delete deal "${form.title}"?`, confirmLabel: "Delete", destructive: true }))) return;
     setPending(true);
     try {
       await apiFetch(`/api/deals/${deal.id}`, { method: "DELETE" });

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { SimpleSelect } from "@/components/ui/select";
+import { useConfirm } from "@/components/confirm";
 import { serviceTypeLabel } from "@/features/projects/stages";
 import type { ServiceType } from "@prisma/client";
 
@@ -31,6 +32,7 @@ export function ReportsManager({
   writable: boolean;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
@@ -90,8 +92,8 @@ export function ReportsManager({
                 </div>
                 {writable && (
                   <button
-                    onClick={() => {
-                      if (!confirm(`Delete the ${r.period} report for ${r.project.name}?`)) return;
+                    onClick={async () => {
+                      if (!(await confirm({ title: `Delete the ${r.period} report for ${r.project.name}?`, confirmLabel: "Delete", destructive: true }))) return;
                       run(() => apiFetch(`/api/reports/${r.id}`, { method: "DELETE" }));
                     }}
                     className="text-xs text-red-600 hover:underline dark:text-red-400"

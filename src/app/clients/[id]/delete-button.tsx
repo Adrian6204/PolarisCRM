@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { useConfirm } from "@/components/confirm";
+import { toast } from "@/components/ui/toaster";
 
 /** Soft-deletes a client after a confirm, then returns to the list. */
 export function DeleteClientButton({
@@ -13,17 +15,24 @@ export function DeleteClientButton({
   clientName: string;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [pending, setPending] = useState(false);
 
   async function onDelete() {
-    if (!confirm(`Delete "${clientName}"? It can be restored by an admin.`)) return;
+    const ok = await confirm({
+      title: `Delete "${clientName}"?`,
+      description: "It can be restored by an admin.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     setPending(true);
     try {
       await apiFetch(`/api/clients/${clientId}`, { method: "DELETE" });
       router.push("/clients");
       router.refresh();
     } catch (err) {
-      alert(err instanceof ApiClientError ? err.message : "Failed to delete.");
+      toast.error(err instanceof ApiClientError ? err.message : "Failed to delete.");
       setPending(false);
     }
   }
