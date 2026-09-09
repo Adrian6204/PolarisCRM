@@ -46,6 +46,7 @@ model User {
   appointments      Appointment[]
   availabilityRules AvailabilityRule[]
   notifications     Notification[]
+  attachments       Attachment[]
 
   @@index([role])
   @@map("users")
@@ -106,6 +107,7 @@ model Client {
   tags         ClientTag[]
   customFields ClientCustomField[]
   appointments Appointment[]
+  attachments  Attachment[]
 
   // status is frequently filtered in list views; deletedAt gates every read.
   @@index([status])
@@ -613,4 +615,25 @@ model AutomationRun {
 
   @@index([automationId, createdAt])
   @@map("automation_runs")
+}
+
+// --- File attachments (P9) ------------------------------------------------
+
+// Metadata for a file stored in Supabase Storage. The bytes live in the
+// private `attachments` bucket at `path`; this row tracks the rest.
+model Attachment {
+  id           String   @id @default(cuid())
+  clientId     String   @map("client_id")
+  name         String
+  path         String
+  size         Int
+  contentType  String   @map("content_type")
+  uploadedById String?  @map("uploaded_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  client     Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  uploadedBy User?  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([clientId, createdAt])
+  @@map("attachments")
 }

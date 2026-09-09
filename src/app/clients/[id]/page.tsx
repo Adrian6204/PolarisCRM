@@ -12,6 +12,8 @@ import { tagsForClient, listTags } from "@/features/tags/service";
 import { getClientCustomFields } from "@/features/custom-fields/service";
 import { listPipelines } from "@/features/pipelines/service";
 import { listAppointments } from "@/features/appointments/service";
+import { listAttachments } from "@/features/attachments/service";
+import { hasStorage } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import { serviceTypeLabel, stageLabel } from "@/features/projects/stages";
 import { listMergeCandidates } from "@/features/clients/merge";
@@ -22,6 +24,7 @@ import { TimelineSection } from "./timeline-section";
 import { TagBar } from "./tag-bar";
 import { CustomFieldsSection } from "./custom-fields-section";
 import { AppointmentsSection } from "./appointments-section";
+import { AttachmentsSection } from "./attachments-section";
 import { DealsSection } from "./deals-section";
 
 /** Client detail view with contacts + projects (Phase 1–2). */
@@ -57,6 +60,7 @@ export default async function ClientDetailPage({
       listPipelines(),
       listAppointments({ clientId: id }),
     ]);
+  const attachments = hasStorage ? await listAttachments(id) : [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -195,6 +199,20 @@ export default async function ClientDetailPage({
       />
 
       <CustomFieldsSection clientId={client.id} fields={customFields} writable={writable} />
+
+      <AttachmentsSection
+        clientId={client.id}
+        writable={writable}
+        storageEnabled={hasStorage}
+        attachments={attachments.map((a) => ({
+          id: a.id,
+          name: a.name,
+          size: a.size,
+          contentType: a.contentType,
+          createdAt: a.createdAt.toISOString(),
+          uploadedBy: a.uploadedBy,
+        }))}
+      />
 
       <AppointmentsSection
         client={{ id: client.id, name: client.name, contacts: client.contacts.map((c) => ({ id: c.id, name: c.name })) }}

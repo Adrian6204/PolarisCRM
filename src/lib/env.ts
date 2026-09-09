@@ -34,6 +34,12 @@ const envSchema = z.object({
   // the public. Optional locally; required in production (checked at the route).
   CRON_SECRET: z.string().optional(),
 
+  // Supabase Storage for file attachments. Optional — the feature is disabled
+  // and degrades to a "not configured" state when these are unset. The service
+  // role key is server-only (never exposed to the browser).
+  SUPABASE_URL: z.string().url().optional().or(z.literal("")),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+
   LOG_LEVEL: z
     .enum(["debug", "info", "warn", "error"])
     .optional(),
@@ -62,3 +68,7 @@ export const isTest = env.NODE_ENV === "test";
 export const hasRedis = Boolean(
   env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN,
 );
+
+/** True when Supabase Storage is configured (file attachments active). */
+export const hasStorage = Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
+
