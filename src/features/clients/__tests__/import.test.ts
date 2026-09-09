@@ -29,7 +29,7 @@ beforeEach(() => {
 describe("importClients", () => {
   it("creates valid rows and maps common header spellings", async () => {
     const db = makeDb();
-    const rows = [
+    const rows: Record<string, string>[] = [
       { name: "Acme", industry: "SaaS", website: "https://acme.com", status: "prospect" },
       { Name: "Globex", URL: "https://globex.com" }, // alt header casings/keys
     ];

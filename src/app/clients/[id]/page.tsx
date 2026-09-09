@@ -14,7 +14,9 @@ import { listPipelines } from "@/features/pipelines/service";
 import { listAppointments } from "@/features/appointments/service";
 import { prisma } from "@/lib/prisma";
 import { serviceTypeLabel, stageLabel } from "@/features/projects/stages";
+import { listMergeCandidates } from "@/features/clients/merge";
 import { DeleteClientButton } from "./delete-button";
+import { MergeButton } from "./merge-button";
 import { ContactsSection } from "./contacts-section";
 import { TimelineSection } from "./timeline-section";
 import { TagBar } from "./tag-bar";
@@ -38,6 +40,8 @@ export default async function ClientDetailPage({
     throw err;
   });
   const writable = canWrite(user.role);
+  const isAdmin = user.role === "admin";
+  const mergeCandidates = isAdmin ? await listMergeCandidates(id) : [];
   const [{ items: projects }, timeline, { items: deals }, members, clientTags, allTags, customFields, pipelines, appointments] =
     await Promise.all([
       listProjects({ clientId: id, page: 1, pageSize: 100 }),
@@ -110,6 +114,13 @@ export default async function ClientDetailPage({
           >
             Audit
           </Link>
+          {isAdmin && (
+            <MergeButton
+              targetId={client.id}
+              targetName={client.name}
+              candidates={mergeCandidates}
+            />
+          )}
           {writable && (
             <>
               <Link
