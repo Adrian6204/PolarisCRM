@@ -2,8 +2,11 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
+import { SimpleSelect } from "@/components/ui/select";
 
 const STATUSES = ["", "active", "prospect", "past"] as const;
+// Radix Select forbids empty-string item values; use a sentinel for "All".
+const ALL = "__all";
 
 /**
  * Search + status filter for the client list. Writes state into the URL query
@@ -47,30 +50,24 @@ export function ClientControls({
         onBlur={() => apply({ q })}
         className="w-64 input"
       />
-      <select
-        value={initialStatus}
-        onChange={(e) => apply({ status: e.target.value })}
-        className="input"
-      >
-        {STATUSES.map((s) => (
-          <option key={s || "all"} value={s}>
-            {s === "" ? "All statuses" : s}
-          </option>
-        ))}
-      </select>
+      <SimpleSelect
+        value={initialStatus || ALL}
+        onValueChange={(v) => apply({ status: v === ALL ? "" : v })}
+        aria-label="Filter by status"
+        className="w-40"
+        options={[
+          { value: ALL, label: "All statuses" },
+          ...STATUSES.filter(Boolean).map((s) => ({ value: s, label: s })),
+        ]}
+      />
       {tags.length > 0 && (
-        <select
-          value={initialTagId}
-          onChange={(e) => apply({ tagId: e.target.value })}
-          className="input"
-        >
-          <option value="">All tags</option>
-          {tags.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+        <SimpleSelect
+          value={initialTagId || ALL}
+          onValueChange={(v) => apply({ tagId: v === ALL ? "" : v })}
+          aria-label="Filter by tag"
+          className="w-44"
+          options={[{ value: ALL, label: "All tags" }, ...tags.map((t) => ({ value: t.id, label: t.name }))]}
+        />
       )}
     </div>
   );

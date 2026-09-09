@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ServiceType, EngagementType } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 import { stagesFor, stageLabel } from "@/features/projects/stages";
 
 /**
@@ -48,17 +49,13 @@ export function StageSelect({
   }
 
   return (
-    <select
+    <SimpleSelect
       value={value}
       disabled={disabled || saving}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded border border-line bg-transparent px-1.5 py-1 text-xs disabled:opacity-60"
-    >
-      {options.map((s) => (
-        <option key={s} value={s}>
-          {stageLabel(s)}
-        </option>
-      ))}
-    </select>
+      onValueChange={onChange}
+      aria-label="Project stage"
+      className="h-8 text-xs"
+      options={options.map((s) => ({ value: s, label: stageLabel(s) }))}
+    />
   );
 }

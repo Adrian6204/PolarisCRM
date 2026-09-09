@@ -4,6 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DeliverableStatus } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
+
+const UNASSIGNED = "__unassigned";
 import {
   DELIVERABLE_STATUSES,
   DELIVERABLE_STATUS_LABELS,
@@ -166,17 +169,13 @@ function DeliverableCard({
         )}
       </div>
       {/* Fast status change — the core daily-use action. */}
-      <select
+      <SimpleSelect
         value={d.status}
-        onChange={(e) => onStatus(e.target.value as DeliverableStatus)}
-        className="w-full rounded border border-line bg-transparent px-1.5 py-1 text-xs"
-      >
-        {DELIVERABLE_STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {DELIVERABLE_STATUS_LABELS[s]}
-          </option>
-        ))}
-      </select>
+        onValueChange={(v) => onStatus(v as DeliverableStatus)}
+        aria-label="Deliverable status"
+        className="h-8 w-full text-xs"
+        options={DELIVERABLE_STATUSES.map((s) => ({ value: s, label: DELIVERABLE_STATUS_LABELS[s] }))}
+      />
     </div>
   );
 }
@@ -216,22 +215,19 @@ function AddDeliverableForm({
         className={inputClass}
       />
       <div className="grid grid-cols-3 gap-3">
-        <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className={inputClass}>
-          <option value="">Unassigned</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name ?? m.email}
-            </option>
-          ))}
-        </select>
+        <SimpleSelect
+          value={ownerId || UNASSIGNED}
+          onValueChange={(v) => setOwnerId(v === UNASSIGNED ? "" : v)}
+          aria-label="Owner"
+          options={[{ value: UNASSIGNED, label: "Unassigned" }, ...members.map((m) => ({ value: m.id, label: m.name ?? m.email }))]}
+        />
         <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={inputClass} />
-        <select value={status} onChange={(e) => setStatus(e.target.value as DeliverableStatus)} className={inputClass}>
-          {DELIVERABLE_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {DELIVERABLE_STATUS_LABELS[s]}
-            </option>
-          ))}
-        </select>
+        <SimpleSelect
+          value={status}
+          onValueChange={(v) => setStatus(v as DeliverableStatus)}
+          aria-label="Status"
+          options={DELIVERABLE_STATUSES.map((s) => ({ value: s, label: DELIVERABLE_STATUS_LABELS[s] }))}
+        />
       </div>
       <div className="flex items-center gap-3">
         <button

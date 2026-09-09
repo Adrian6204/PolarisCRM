@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { CustomFieldType } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 import type { ClientFieldView } from "@/features/custom-fields/service";
+
+const UNSET = "__unset";
 
 /**
  * Editable custom-field panel on the client detail page. Renders a typed input
@@ -126,20 +129,21 @@ function FieldInput({
       return <input type="url" placeholder="https://…" value={value} onChange={(e) => onChange(e.target.value)} className="input" />;
     case CustomFieldType.boolean:
       return (
-        <select value={value} onChange={(e) => onChange(e.target.value)} className="input">
-          <option value="">—</option>
-          <option value="true">Yes</option>
-          <option value="false">No</option>
-        </select>
+        <SimpleSelect
+          value={value || UNSET}
+          onValueChange={(v) => onChange(v === UNSET ? "" : v)}
+          aria-label={field.label}
+          options={[{ value: UNSET, label: "—" }, { value: "true", label: "Yes" }, { value: "false", label: "No" }]}
+        />
       );
     case CustomFieldType.select:
       return (
-        <select value={value} onChange={(e) => onChange(e.target.value)} className="input">
-          <option value="">—</option>
-          {field.options.map((o) => (
-            <option key={o} value={o}>{o}</option>
-          ))}
-        </select>
+        <SimpleSelect
+          value={value || UNSET}
+          onValueChange={(v) => onChange(v === UNSET ? "" : v)}
+          aria-label={field.label}
+          options={[{ value: UNSET, label: "—" }, ...field.options.map((o) => ({ value: o, label: o }))]}
+        />
       );
     default:
       return <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="input" />;

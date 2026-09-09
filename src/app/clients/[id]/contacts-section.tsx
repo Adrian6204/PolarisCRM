@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type ContactRole = "decision_maker" | "technical_poc" | "billing" | "other";
 
@@ -193,24 +195,15 @@ function AddContactForm({
           onChange={(e) => setPhone(e.target.value)}
           className={inputClass}
         />
-        <select
+        <SimpleSelect
           value={role}
-          onChange={(e) => setRole(e.target.value as ContactRole)}
-          className={inputClass}
-        >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABELS[r]}
-            </option>
-          ))}
-        </select>
+          onValueChange={(v) => setRole(v as ContactRole)}
+          aria-label="Contact role"
+          options={ROLES.map((r) => ({ value: r, label: ROLE_LABELS[r] }))}
+        />
       </div>
       <label className="flex items-center gap-2 text-sm text-muted">
-        <input
-          type="checkbox"
-          checked={isPrimary}
-          onChange={(e) => setIsPrimary(e.target.checked)}
-        />
+        <Checkbox checked={isPrimary} onCheckedChange={(c) => setIsPrimary(c === true)} />
         Primary contact
       </label>
       <div className="flex items-center gap-3">

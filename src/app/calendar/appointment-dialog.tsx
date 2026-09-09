@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { AppointmentStatus } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 import { APPOINTMENT_STATUS_LABELS, formatTime } from "@/features/appointments/display";
 import type { AppointmentVM, HostVM, ClientVM } from "./calendar-view";
+
+const NONE = "__none";
 
 const STATUSES = Object.values(AppointmentStatus);
 const localDate = (iso: string) => {
@@ -128,32 +131,33 @@ export function AppointmentDialog({
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">Host</span>
-            <select value={ownerId} onChange={(e) => { setOwnerId(e.target.value); setSlots(null); }} className="input">
-              {hosts.map((h) => (
-                <option key={h.id} value={h.id}>{h.name ?? h.email}</option>
-              ))}
-            </select>
+            <SimpleSelect
+              value={ownerId}
+              onValueChange={(v) => { setOwnerId(v); setSlots(null); }}
+              aria-label="Host"
+              options={hosts.map((h) => ({ value: h.id, label: h.name ?? h.email }))}
+            />
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">Client</span>
-            <select value={clientId} onChange={(e) => { setClientId(e.target.value); setContactId(""); }} className="input">
-              <option value="">None</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <SimpleSelect
+              value={clientId || NONE}
+              onValueChange={(v) => { setClientId(v === NONE ? "" : v); setContactId(""); }}
+              aria-label="Client"
+              options={[{ value: NONE, label: "None" }, ...clients.map((c) => ({ value: c.id, label: c.name }))]}
+            />
           </label>
         </div>
 
         {contacts.length > 0 && (
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">Contact</span>
-            <select value={contactId} onChange={(e) => setContactId(e.target.value)} className="input">
-              <option value="">None</option>
-              {contacts.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <SimpleSelect
+              value={contactId || NONE}
+              onValueChange={(v) => setContactId(v === NONE ? "" : v)}
+              aria-label="Contact"
+              options={[{ value: NONE, label: "None" }, ...contacts.map((c) => ({ value: c.id, label: c.name }))]}
+            />
           </label>
         )}
 
@@ -168,11 +172,12 @@ export function AppointmentDialog({
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">Duration</span>
-            <select value={duration} onChange={(e) => { setDuration(Number(e.target.value)); setSlots(null); }} className="input">
-              {durations.map((d) => (
-                <option key={d} value={d}>{d} min</option>
-              ))}
-            </select>
+            <SimpleSelect
+              value={String(duration)}
+              onValueChange={(v) => { setDuration(Number(v)); setSlots(null); }}
+              aria-label="Duration"
+              options={durations.map((d) => ({ value: String(d), label: `${d} min` }))}
+            />
           </label>
         </div>
 
@@ -212,11 +217,12 @@ export function AppointmentDialog({
           {editing && (
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-muted">Status</span>
-              <select value={status} onChange={(e) => setStatus(e.target.value as AppointmentStatus)} className="input">
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>{APPOINTMENT_STATUS_LABELS[s]}</option>
-                ))}
-              </select>
+              <SimpleSelect
+                value={status}
+                onValueChange={(v) => setStatus(v as AppointmentStatus)}
+                aria-label="Status"
+                options={STATUSES.map((s) => ({ value: s, label: APPOINTMENT_STATUS_LABELS[s] }))}
+              />
             </label>
           )}
         </div>

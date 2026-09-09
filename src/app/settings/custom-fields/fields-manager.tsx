@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CustomFieldType } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 
 interface Def {
   id: string;
@@ -182,11 +183,13 @@ function CreateForm({ onCreate }: { onCreate: (body: Record<string, unknown>) =>
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted">
           Type
-          <select value={type} onChange={(e) => setType(e.target.value as CustomFieldType)} className="input !w-auto">
-            {TYPES.map((t) => (
-              <option key={t} value={t}>{TYPE_LABEL[t]}</option>
-            ))}
-          </select>
+          <SimpleSelect
+            value={type}
+            onValueChange={(v) => setType(v as CustomFieldType)}
+            aria-label="Field type"
+            className="w-40"
+            options={TYPES.map((t) => ({ value: t, label: TYPE_LABEL[t] }))}
+          />
         </label>
         <button type="submit" className="btn btn-primary !py-1.5">Add field</button>
       </div>

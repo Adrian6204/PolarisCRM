@@ -6,6 +6,9 @@ import {
   DELIVERABLE_STATUSES,
   DELIVERABLE_STATUS_LABELS,
 } from "@/features/deliverables/status";
+import { SimpleSelect } from "@/components/ui/select";
+
+const ALL = "__all";
 
 /** Status + owner filters for the global task list; state lives in the URL. */
 export function TaskFilters({
@@ -32,32 +35,28 @@ export function TaskFilters({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <select
-        value={status}
-        onChange={(e) => apply({ status: e.target.value })}
-        className="input"
-      >
-        <option value="">All statuses</option>
-        {DELIVERABLE_STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {DELIVERABLE_STATUS_LABELS[s as DeliverableStatus]}
-          </option>
-        ))}
-      </select>
+      <SimpleSelect
+        value={status || ALL}
+        onValueChange={(v) => apply({ status: v === ALL ? "" : v })}
+        aria-label="Filter by status"
+        className="w-44"
+        options={[
+          { value: ALL, label: "All statuses" },
+          ...DELIVERABLE_STATUSES.map((s) => ({ value: s, label: DELIVERABLE_STATUS_LABELS[s as DeliverableStatus] })),
+        ]}
+      />
 
-      <select
-        value={ownerId}
-        onChange={(e) => apply({ ownerId: e.target.value })}
-        className="input"
-      >
-        <option value="">All owners</option>
-        <option value={currentUserId}>Assigned to me</option>
-        {members.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.name ?? m.email}
-          </option>
-        ))}
-      </select>
+      <SimpleSelect
+        value={ownerId || ALL}
+        onValueChange={(v) => apply({ ownerId: v === ALL ? "" : v })}
+        aria-label="Filter by owner"
+        className="w-48"
+        options={[
+          { value: ALL, label: "All owners" },
+          { value: currentUserId, label: "Assigned to me" },
+          ...members.filter((m) => m.id !== currentUserId).map((m) => ({ value: m.id, label: m.name ?? m.email })),
+        ]}
+      />
     </div>
   );
 }

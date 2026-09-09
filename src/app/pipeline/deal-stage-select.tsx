@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 
 /**
  * Inline stage picker for a deal card. PATCHes the stageId and refreshes so the
@@ -43,17 +44,13 @@ export function DealStageSelect({
   }
 
   return (
-    <select
+    <SimpleSelect
       value={value}
       disabled={disabled || saving}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded border border-line bg-transparent px-1.5 py-1 text-xs disabled:opacity-60"
-    >
-      {stages.map((s) => (
-        <option key={s.id} value={s.id}>
-          {s.name}
-        </option>
-      ))}
-    </select>
+      onValueChange={onChange}
+      aria-label="Deal stage"
+      className="h-8 text-xs"
+      options={stages.map((s) => ({ value: s.id, label: s.name }))}
+    />
   );
 }

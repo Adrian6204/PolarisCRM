@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 
 type ClientStatus = "active" | "prospect" | "past";
 
@@ -84,17 +85,12 @@ export function ClientForm({ initial }: { initial?: ClientFormValues }) {
         />
       </Field>
       <Field label="Status">
-        <select
+        <SimpleSelect
           value={status}
-          onChange={(e) => setStatus(e.target.value as ClientStatus)}
-          className={inputClass}
-        >
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+          onValueChange={(v) => setStatus(v as ClientStatus)}
+          aria-label="Status"
+          options={STATUSES.map((s) => ({ value: s, label: s }))}
+        />
       </Field>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

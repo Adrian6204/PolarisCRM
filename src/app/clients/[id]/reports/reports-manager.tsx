@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 import { serviceTypeLabel } from "@/features/projects/stages";
 import type { ServiceType } from "@prisma/client";
 
@@ -163,11 +164,12 @@ function ReportForm({
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted">Project</span>
-          <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className={inputClass}>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <SimpleSelect
+            value={projectId}
+            onValueChange={setProjectId}
+            aria-label="Project"
+            options={projects.map((p) => ({ value: p.id, label: p.name }))}
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted">Period</span>

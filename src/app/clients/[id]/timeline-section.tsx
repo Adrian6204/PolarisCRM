@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ActivityType } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 import type { TimelineEvent } from "@/features/timeline/service";
+
+const NO_PROJECT = "__none";
 
 const ACT_LABEL: Record<ActivityType, string> = {
   call: "Call",
@@ -174,17 +177,20 @@ function ActivityComposer({
         className="input"
       />
       <div className="flex flex-wrap items-center gap-3">
-        <select value={type} onChange={(e) => setType(e.target.value as ActivityType)} className="input !w-auto">
-          {ACT_TYPES.map((t) => (
-            <option key={t} value={t}>{ACT_LABEL[t]}</option>
-          ))}
-        </select>
-        <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="input !w-auto">
-          <option value="">Client-level (no project)</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+        <SimpleSelect
+          value={type}
+          onValueChange={(v) => setType(v as ActivityType)}
+          aria-label="Activity type"
+          className="w-36"
+          options={ACT_TYPES.map((t) => ({ value: t, label: ACT_LABEL[t] }))}
+        />
+        <SimpleSelect
+          value={projectId || NO_PROJECT}
+          onValueChange={(v) => setProjectId(v === NO_PROJECT ? "" : v)}
+          aria-label="Project"
+          className="w-56"
+          options={[{ value: NO_PROJECT, label: "Client-level (no project)" }, ...projects.map((p) => ({ value: p.id, label: p.name }))]}
+        />
         <button type="submit" className="btn btn-primary !py-1.5">Log activity</button>
       </div>
     </form>

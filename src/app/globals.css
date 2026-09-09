@@ -168,23 +168,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* Native <select>: keep the closed control themed AND force the popped-open
-     option list to a legible, solid, theme-matched surface. Browsers render the
-     option list natively, so without this it falls back to a near-black-on-dark
-     mess in dark mode. */
-  select {
-    color: var(--text);
-    background-color: var(--bg);
-  }
-  select.bg-transparent {
-    background-color: transparent;
-  }
-  option,
-  optgroup {
-    background-color: var(--surface);
-    color: var(--text);
-  }
-
   /* Brand lockup is a transparent PNG (white ground keyed out). Its content is
      dark, so it shows on light surfaces as-is and is inverted to light on dark.
      No blend mode → no stacking-context fragility, transparent on any surface. */

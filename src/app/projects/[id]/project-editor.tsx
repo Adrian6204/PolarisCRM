@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ServiceType, EngagementType, ProjectStatus } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 import { stagesFor, stageLabel } from "@/features/projects/stages";
 
 const inputClass =
@@ -95,26 +96,27 @@ export function ProjectEditor({
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Stage">
-          <select value={form.stage} disabled={readonly} onChange={(e) => set("stage", e.target.value)} className={inputClass}>
-            {stages.map((s) => (
-              <option key={s} value={s}>
-                {stageLabel(s)}
-              </option>
-            ))}
-          </select>
+          <SimpleSelect
+            value={form.stage}
+            disabled={readonly}
+            onValueChange={(v) => set("stage", v)}
+            aria-label="Stage"
+            options={stages.map((s) => ({ value: s, label: stageLabel(s) }))}
+          />
         </Field>
         <Field label="Status">
-          <select
+          <SimpleSelect
             value={form.status}
             disabled={readonly}
-            onChange={(e) => set("status", e.target.value as ProjectStatus)}
-            className={inputClass}
-          >
-            <option value={ProjectStatus.active}>Active</option>
-            <option value={ProjectStatus.on_hold}>On hold</option>
-            <option value={ProjectStatus.completed}>Completed</option>
-            <option value={ProjectStatus.cancelled}>Cancelled</option>
-          </select>
+            onValueChange={(v) => set("status", v as ProjectStatus)}
+            aria-label="Status"
+            options={[
+              { value: ProjectStatus.active, label: "Active" },
+              { value: ProjectStatus.on_hold, label: "On hold" },
+              { value: ProjectStatus.completed, label: "Completed" },
+              { value: ProjectStatus.cancelled, label: "Cancelled" },
+            ]}
+          />
         </Field>
       </div>
 

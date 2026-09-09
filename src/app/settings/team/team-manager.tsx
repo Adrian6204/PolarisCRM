@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Role } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 
 interface UserV { id: string; name: string | null; email: string; role: Role; active: boolean }
 
@@ -81,15 +82,13 @@ function UserRow({
       </td>
       <td className="px-4 py-3">
         {isAdmin && !isMe ? (
-          <select
+          <SimpleSelect
             value={user.role}
-            onChange={(e) => run(() => apiFetch(`/api/users/${user.id}`, { method: "PATCH", body: JSON.stringify({ role: e.target.value }) })).catch(() => {})}
-            className="input !w-auto !py-1 text-sm"
-          >
-            {ROLES.map((r) => (
-              <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-            ))}
-          </select>
+            onValueChange={(v) => run(() => apiFetch(`/api/users/${user.id}`, { method: "PATCH", body: JSON.stringify({ role: v }) })).catch(() => {})}
+            aria-label="Role"
+            className="h-8 w-40 text-sm"
+            options={ROLES.map((r) => ({ value: r, label: ROLE_LABELS[r] }))}
+          />
         ) : (
           <span>{ROLE_LABELS[user.role]}</span>
         )}
@@ -155,11 +154,7 @@ function CreateUserForm({ onCreate }: { onCreate: (body: unknown) => Promise<voi
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="input" required />
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="input" required />
-        <select value={role} onChange={(e) => setRole(e.target.value as Role)} className="input">
-          {ROLES.map((r) => (
-            <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-          ))}
-        </select>
+        <SimpleSelect value={role} onValueChange={(v) => setRole(v as Role)} aria-label="Role" options={ROLES.map((r) => ({ value: r, label: ROLE_LABELS[r] }))} />
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Initial password (min 8)" className="input" required minLength={8} />
       </div>
       <div>

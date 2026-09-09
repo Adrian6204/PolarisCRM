@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AutomationTrigger, AutomationActionType, ActivityType } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 import { TRIGGER_LABELS, ACTION_LABELS, TRIGGER_TOKENS } from "@/features/automations/display";
+
+const ALWAYS = "__always";
 
 interface ActionV { type: AutomationActionType; config: Record<string, unknown> }
 interface AutomationV {
@@ -186,23 +189,25 @@ function CreateForm({
         </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted">When (trigger)</span>
-          <select value={trigger} onChange={(e) => { setTrigger(e.target.value as AutomationTrigger); setCondKey(""); }} className="input">
-            {TRIGGERS.map((t) => (
-              <option key={t} value={t}>{TRIGGER_LABELS[t]}</option>
-            ))}
-          </select>
+          <SimpleSelect
+            value={trigger}
+            onValueChange={(v) => { setTrigger(v as AutomationTrigger); setCondKey(""); }}
+            aria-label="Trigger"
+            options={TRIGGERS.map((t) => ({ value: t, label: TRIGGER_LABELS[t] }))}
+          />
         </label>
       </div>
 
       <div className="flex flex-col gap-1 text-sm">
         <span className="text-muted">Condition (optional)</span>
         <div className="flex flex-wrap items-center gap-2">
-          <select value={condKey} onChange={(e) => setCondKey(e.target.value)} className="input !w-auto">
-            <option value="">Always</option>
-            {tokens.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
+          <SimpleSelect
+            value={condKey || ALWAYS}
+            onValueChange={(v) => setCondKey(v === ALWAYS ? "" : v)}
+            aria-label="Condition field"
+            className="w-44"
+            options={[{ value: ALWAYS, label: "Always" }, ...tokens.map((t) => ({ value: t, label: t }))]}
+          />
           {condKey && (
             <>
               <span className="text-muted">=</span>
@@ -217,11 +222,13 @@ function CreateForm({
         <p className="text-xs text-muted">Tokens: {tokens.map((t) => `{{${t}}}`).join(" ")}</p>
         {actions.map((a, i) => (
           <div key={i} className="flex flex-wrap items-center gap-2 rounded-md border border-line p-2">
-            <select value={a.type} onChange={(e) => setActionType(i, e.target.value as AutomationActionType)} className="input !w-auto">
-              {ACTION_TYPES.map((t) => (
-                <option key={t} value={t}>{ACTION_LABELS[t]}</option>
-              ))}
-            </select>
+            <SimpleSelect
+              value={a.type}
+              onValueChange={(v) => setActionType(i, v as AutomationActionType)}
+              aria-label="Action"
+              className="w-40"
+              options={ACTION_TYPES.map((t) => ({ value: t, label: ACTION_LABELS[t] }))}
+            />
             {a.type === AutomationActionType.add_tag && (
               <input value={String(a.config.tag ?? "")} onChange={(e) => setAction(i, { config: { tag: e.target.value } })} placeholder="Tag name" className="input !w-48" />
             )}
@@ -230,11 +237,13 @@ function CreateForm({
             )}
             {a.type === AutomationActionType.log_activity && (
               <>
-                <select value={String(a.config.activityType ?? ActivityType.note)} onChange={(e) => setAction(i, { config: { ...a.config, activityType: e.target.value } })} className="input !w-auto">
-                  {ACTIVITY_TYPES.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
+                <SimpleSelect
+                  value={String(a.config.activityType ?? ActivityType.note)}
+                  onValueChange={(v) => setAction(i, { config: { ...a.config, activityType: v } })}
+                  aria-label="Activity type"
+                  className="w-32"
+                  options={ACTIVITY_TYPES.map((t) => ({ value: t, label: t }))}
+                />
                 <input value={String(a.config.summary ?? "")} onChange={(e) => setAction(i, { config: { ...a.config, summary: e.target.value } })} placeholder="Summary" className="input flex-1 !min-w-40" />
               </>
             )}

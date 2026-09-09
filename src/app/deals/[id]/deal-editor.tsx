@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 
 const inputClass =
   "input";
+const UNASSIGNED = "__unassigned";
 
 export interface EditableDeal {
   id: string;
@@ -89,21 +91,24 @@ export function DealEditor({
           <input type="number" min="0" value={form.value} disabled={readonly} onChange={(e) => set("value", Number(e.target.value) || 0)} className={inputClass} />
         </Field>
         <Field label={`Stage · ${pipelineName}`}>
-          <select value={form.stageId} disabled={readonly} onChange={(e) => set("stageId", e.target.value)} className={inputClass}>
-            {stageOptions.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
+          <SimpleSelect
+            value={form.stageId}
+            disabled={readonly}
+            onValueChange={(v) => set("stageId", v)}
+            aria-label="Stage"
+            options={stageOptions.map((s) => ({ value: s.id, label: s.name }))}
+          />
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <Field label="Owner">
-          <select value={form.ownerId ?? ""} disabled={readonly} onChange={(e) => set("ownerId", e.target.value || null)} className={inputClass}>
-            <option value="">Unassigned</option>
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>{m.name ?? m.email}</option>
-            ))}
-          </select>
+          <SimpleSelect
+            value={form.ownerId || UNASSIGNED}
+            disabled={readonly}
+            onValueChange={(v) => set("ownerId", v === UNASSIGNED ? null : v)}
+            aria-label="Owner"
+            options={[{ value: UNASSIGNED, label: "Unassigned" }, ...members.map((m) => ({ value: m.id, label: m.name ?? m.email }))]}
+          />
         </Field>
         <Field label="Expected close">
           <input type="date" value={form.expectedCloseDate} disabled={readonly} onChange={(e) => set("expectedCloseDate", e.target.value)} className={inputClass} />

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ServiceType, EngagementType, ProjectStatus } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 import {
   SERVICE_TYPES,
   serviceTypeLabel,
@@ -77,14 +78,13 @@ export function ProjectForm({ clients }: { clients: { id: string; name: string }
   return (
     <form onSubmit={onSubmit} className="flex max-w-lg flex-col gap-4">
       <Field label="Client" required>
-        <select value={clientId} onChange={(e) => setClientId(e.target.value)} className={inputClass}>
-          {clients.length === 0 && <option value="">No clients — create one first</option>}
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <SimpleSelect
+          value={clientId}
+          onValueChange={setClientId}
+          aria-label="Client"
+          placeholder="No clients — create one first"
+          options={clients.map((c) => ({ value: c.id, label: c.name }))}
+        />
       </Field>
 
       <Field label="Name" required>
@@ -93,44 +93,33 @@ export function ProjectForm({ clients }: { clients: { id: string; name: string }
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Service type">
-          <select
+          <SimpleSelect
             value={serviceType}
-            onChange={(e) => {
-              setServiceType(e.target.value as ServiceType);
-              setStage(""); // reset — stage set changes with service type
-            }}
-            className={inputClass}
-          >
-            {SERVICE_TYPES.map((s) => (
-              <option key={s} value={s}>
-                {serviceTypeLabel(s)}
-              </option>
-            ))}
-          </select>
+            onValueChange={(v) => { setServiceType(v as ServiceType); setStage(""); }}
+            aria-label="Service type"
+            options={SERVICE_TYPES.map((s) => ({ value: s, label: serviceTypeLabel(s) }))}
+          />
         </Field>
         <Field label="Engagement">
-          <select
+          <SimpleSelect
             value={engagementType}
-            onChange={(e) => {
-              setEngagementType(e.target.value as EngagementType);
-              setStage("");
-            }}
-            className={inputClass}
-          >
-            <option value={EngagementType.one_off}>One-off</option>
-            <option value={EngagementType.retainer}>Retainer</option>
-          </select>
+            onValueChange={(v) => { setEngagementType(v as EngagementType); setStage(""); }}
+            aria-label="Engagement"
+            options={[
+              { value: EngagementType.one_off, label: "One-off" },
+              { value: EngagementType.retainer, label: "Retainer" },
+            ]}
+          />
         </Field>
       </div>
 
       <Field label="Starting stage">
-        <select value={effectiveStage} onChange={(e) => setStage(e.target.value)} className={inputClass}>
-          {stages.map((s) => (
-            <option key={s} value={s}>
-              {stageLabel(s)}
-            </option>
-          ))}
-        </select>
+        <SimpleSelect
+          value={effectiveStage}
+          onValueChange={setStage}
+          aria-label="Starting stage"
+          options={stages.map((s) => ({ value: s, label: stageLabel(s) }))}
+        />
       </Field>
 
       <div className="grid grid-cols-2 gap-4">
@@ -149,12 +138,17 @@ export function ProjectForm({ clients }: { clients: { id: string; name: string }
       )}
 
       <Field label="Status">
-        <select value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus)} className={inputClass}>
-          <option value={ProjectStatus.active}>Active</option>
-          <option value={ProjectStatus.on_hold}>On hold</option>
-          <option value={ProjectStatus.completed}>Completed</option>
-          <option value={ProjectStatus.cancelled}>Cancelled</option>
-        </select>
+        <SimpleSelect
+          value={status}
+          onValueChange={(v) => setStatus(v as ProjectStatus)}
+          aria-label="Status"
+          options={[
+            { value: ProjectStatus.active, label: "Active" },
+            { value: ProjectStatus.on_hold, label: "On hold" },
+            { value: ProjectStatus.completed, label: "Completed" },
+            { value: ProjectStatus.cancelled, label: "Cancelled" },
+          ]}
+        />
       </Field>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

@@ -7,6 +7,9 @@ import { StageKind } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
 import { STAGE_KIND_STYLES, formatMoney } from "@/features/deals/display";
 import { DealStageSelect } from "@/app/pipeline/deal-stage-select";
+import { SimpleSelect } from "@/components/ui/select";
+
+const UNASSIGNED = "__unassigned";
 
 export interface PipelineView {
   id: string;
@@ -188,23 +191,15 @@ function AddDealForm({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <input type="number" min="0" placeholder="Value ($)" value={value} onChange={(e) => setValue(e.target.value)} className="input" />
         {pipelines.length > 1 && (
-          <select value={pipelineId} onChange={(e) => onPipeline(e.target.value)} className="input">
-            {pipelines.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <SimpleSelect value={pipelineId} onValueChange={onPipeline} aria-label="Pipeline" options={pipelines.map((p) => ({ value: p.id, label: p.name }))} />
         )}
-        <select value={stageId} onChange={(e) => setStageId(e.target.value)} className="input">
-          {stages.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-        <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="input">
-          <option value="">Unassigned</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>{m.name ?? m.email}</option>
-          ))}
-        </select>
+        <SimpleSelect value={stageId} onValueChange={setStageId} aria-label="Stage" options={stages.map((s) => ({ value: s.id, label: s.name }))} />
+        <SimpleSelect
+          value={ownerId || UNASSIGNED}
+          onValueChange={(v) => setOwnerId(v === UNASSIGNED ? "" : v)}
+          aria-label="Owner"
+          options={[{ value: UNASSIGNED, label: "Unassigned" }, ...members.map((m) => ({ value: m.id, label: m.name ?? m.email }))]}
+        />
       </div>
       <div className="flex items-center gap-3">
         <button type="submit" className="btn btn-primary !py-1.5">Add</button>

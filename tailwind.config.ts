@@ -38,6 +38,18 @@ const config: Config = {
       maxWidth: {
         content: "72rem",
       },
+      keyframes: {
+        "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
+        "fade-out": { from: { opacity: "1" }, to: { opacity: "0" } },
+        "zoom-in": { from: { transform: "scale(0.97)" }, to: { transform: "scale(1)" } },
+        "zoom-out": { from: { transform: "scale(1)" }, to: { transform: "scale(0.97)" } },
+      },
+      animation: {
+        "fade-in": "fade-in 120ms ease-out",
+        "fade-out": "fade-out 120ms ease-in",
+        "pop-in": "fade-in 120ms ease-out, zoom-in 120ms ease-out",
+        "pop-out": "fade-out 100ms ease-in, zoom-out 100ms ease-in",
+      },
     },
   },
   plugins: [],

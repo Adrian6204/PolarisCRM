@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DeliverableStatus } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 import {
   DELIVERABLE_STATUSES,
   DELIVERABLE_STATUS_LABELS,
@@ -53,17 +54,13 @@ export function TaskRow({ task }: { task: TaskRowData }) {
         {task.dueDate ?? "—"}
       </td>
       <td className="px-4 py-3">
-        <select
+        <SimpleSelect
           value={task.status}
-          onChange={(e) => onStatus(e.target.value as DeliverableStatus)}
-          className="rounded border border-line bg-transparent px-1.5 py-1 text-xs"
-        >
-          {DELIVERABLE_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {DELIVERABLE_STATUS_LABELS[s]}
-            </option>
-          ))}
-        </select>
+          onValueChange={(v) => onStatus(v as DeliverableStatus)}
+          aria-label="Task status"
+          className="h-8 w-36 text-xs"
+          options={DELIVERABLE_STATUSES.map((s) => ({ value: s, label: DELIVERABLE_STATUS_LABELS[s] }))}
+        />
       </td>
     </tr>
   );

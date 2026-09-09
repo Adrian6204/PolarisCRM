@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { StageKind } from "@prisma/client";
 import { apiFetch, ApiClientError } from "@/lib/api-client";
+import { SimpleSelect } from "@/components/ui/select";
 import { STAGE_KIND_LABELS } from "@/features/deals/display";
 
 interface StageV {
@@ -198,15 +199,13 @@ function StageRow({
         onBlur={() => name.trim() && name.trim() !== stage.name && run(() => apiFetch(url, { method: "PATCH", body: JSON.stringify({ name: name.trim() }) }))}
         className="input !w-48 !py-1 text-sm"
       />
-      <select
+      <SimpleSelect
         value={stage.kind}
-        onChange={(e) => run(() => apiFetch(url, { method: "PATCH", body: JSON.stringify({ kind: e.target.value }) }))}
-        className="input !w-auto !py-1 text-sm"
-      >
-        {KINDS.map((k) => (
-          <option key={k} value={k}>{STAGE_KIND_LABELS[k]}</option>
-        ))}
-      </select>
+        onValueChange={(v) => run(() => apiFetch(url, { method: "PATCH", body: JSON.stringify({ kind: v }) }))}
+        aria-label="Stage kind"
+        className="h-8 w-28 text-sm"
+        options={KINDS.map((k) => ({ value: k, label: STAGE_KIND_LABELS[k] }))}
+      />
       <div className="ml-auto flex items-center gap-1 text-muted">
         <button onClick={() => onMove("up")} disabled={!canUp} className="px-1 disabled:opacity-30 hover:text-fg" aria-label="Move up">↑</button>
         <button onClick={() => onMove("down")} disabled={!canDown} className="px-1 disabled:opacity-30 hover:text-fg" aria-label="Move down">↓</button>
