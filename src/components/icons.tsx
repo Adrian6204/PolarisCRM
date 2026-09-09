@@ -114,6 +114,23 @@ export function IconChevronRight({ className }: IconProps) {
   );
 }
 
+export function IconEye({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export function IconEyeOff({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M10.6 6.1A9.7 9.7 0 0 1 12 6c6 0 9.5 6 9.5 6a15 15 0 0 1-2.4 3M6.3 6.4A15 15 0 0 0 2.5 12s3.5 7 9.5 7a9.4 9.4 0 0 0 5-1.4M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18" />
+    </svg>
+  );
+}
+
 export function IconCalendar({ className }: IconProps) {
   return (
     <svg {...base} className={className}>
