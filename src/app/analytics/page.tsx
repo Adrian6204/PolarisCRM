@@ -1,13 +1,16 @@
 import { requirePageUser } from "@/lib/session";
-import { getAnalytics } from "@/features/analytics/service";
+import { getAnalytics, getPerformanceReport } from "@/features/analytics/service";
 import { serviceTypeLabel } from "@/features/projects/stages";
 import { formatMoney } from "@/features/deals/display";
 import { DELIVERABLE_STATUS_LABELS } from "@/features/deliverables/status";
 import { MagnitudeBars, CategoryBars } from "./charts";
 import { StatTile, ChartCard, CompositionBar } from "./parts";
+import { RangeTabs } from "./range-tabs";
 
 /** Analytics — KPIs + charts across pipeline, delivery, and workload. */
 export const dynamic = "force-dynamic";
+
+const RANGE_DAYS: Record<string, number> = { "30d": 30, "90d": 90, "365d": 365 };
 
 const RAMP = ["var(--chart-s1)", "var(--chart-s2)", "var(--chart-s3)", "var(--chart-s4)"];
 // Categorical mono scale (strong→weak) — a distinct lightness step per tier.
@@ -21,9 +24,18 @@ const CAT = [
 const catFill = (i: number) => CAT[i % CAT.length];
 const CLIENT_LABEL: Record<string, string> = { active: "Active", prospect: "Prospect", past: "Past" };
 
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   await requirePageUser();
-  const a = await getAnalytics();
+  const sp = await searchParams;
+  const rangeKey = sp.range && RANGE_DAYS[sp.range] ? sp.range : "90d";
+  const to = new Date();
+  const from = new Date(to.getTime() - RANGE_DAYS[rangeKey] * 86_400_000);
+  const [a, perf] = await Promise.all([getAnalytics(), getPerformanceReport({ from, to })]);
+  const perfWinRate = perf.sales.winRate === null ? "—" : `${Math.round(perf.sales.winRate * 100)}%`;
 
   // Each tier gets its own step from the monochrome categorical scale.
   const pipelineData = a.pipelineByStage.map((p, i) => ({
@@ -63,6 +75,38 @@ export default async function AnalyticsPage() {
         <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
         <p className="text-sm text-muted">Pipeline, delivery, and workload across the agency.</p>
       </header>
+
+      {/* Performance report — time-bounded sales outcomes + leaderboard */}
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Performance</h2>
+          <RangeTabs active={rangeKey} />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" data-stagger>
+          <StatTile label="Deals created" value={String(perf.sales.created)} />
+          <StatTile label="Won" value={String(perf.sales.won)} tone={perf.sales.won > 0 ? "good" : undefined} />
+          <StatTile label="Lost" value={String(perf.sales.lost)} />
+          <StatTile label="Win rate" value={perfWinRate} caption="won / closed" />
+          <StatTile label="Won value" value={formatMoney(perf.sales.wonValue)} />
+          <StatTile label="Avg cycle" value={perf.sales.avgCycleDays === null ? "—" : `${perf.sales.avgCycleDays}d`} caption="create → close" />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2" data-stagger>
+          <ChartCard title="Sales leaderboard" caption="Won value per owner in range.">
+            {perf.leaderboard.length > 0 ? (
+              <CategoryBars data={perf.leaderboard.map((l, i) => ({ label: l.name, value: l.wonValue, fill: catFill(i) }))} unitLabel="won value" format="money" height={Math.max(160, perf.leaderboard.length * 44)} />
+            ) : (
+              <p className="empty">No deals won in this period.</p>
+            )}
+          </ChartCard>
+          <ChartCard title="Activity by user" caption="Logged calls, emails, meetings & notes in range.">
+            {perf.activityByUser.length > 0 ? (
+              <CategoryBars data={perf.activityByUser.map((u, i) => ({ label: u.name, value: u.count, fill: catFill(i) }))} unitLabel="activities" height={Math.max(160, perf.activityByUser.length * 44)} />
+            ) : (
+              <p className="empty">No activity logged in this period.</p>
+            )}
+          </ChartCard>
+        </div>
+      </section>
 
       {/* KPI tiles — headline numbers (not charts) */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" data-stagger>

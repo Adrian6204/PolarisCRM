@@ -133,3 +133,77 @@ async function computeAnalytics(): Promise<Analytics> {
     clientsByStatus,
   };
 }
+
+// --- Performance report (P8) ----------------------------------------------
+
+export interface PerformanceReport {
+  from: string;
+  to: string;
+  sales: {
+    created: number;
+    won: number;
+    lost: number;
+    winRate: number | null;
+    wonValue: number;
+    avgCycleDays: number | null;
+  };
+  leaderboard: { name: string; wonCount: number; wonValue: number }[];
+  activityByUser: { name: string; count: number }[];
+}
+
+/**
+ * Time-bounded sales performance (P8). Outcomes (won/lost) are counted by the
+ * period in which they *closed*; creations by createdAt. Adds a per-owner
+ * leaderboard (won deals closed in range) and activity volume per user. Not
+ * cached — the range is user-driven and the queries are cheap.
+ */
+export async function getPerformanceReport(range: { from: Date; to: Date }): Promise<PerformanceReport> {
+  const { from, to } = range;
+  const inRangeClosed = { deletedAt: null, closedAt: { gte: from, lt: to } };
+  const wonWhere = { ...inRangeClosed, stage: { is: { kind: StageKind.won } } };
+  const lostWhere = { ...inRangeClosed, stage: { is: { kind: StageKind.lost } } };
+
+  const [created, won, lost, wonAgg, wonDeals, wonByOwner, activityByOwner, users] = await Promise.all([
+    prisma.deal.count({ where: { deletedAt: null, createdAt: { gte: from, lt: to } } }),
+    prisma.deal.count({ where: wonWhere }),
+    prisma.deal.count({ where: lostWhere }),
+    prisma.deal.aggregate({ _sum: { value: true }, where: wonWhere }),
+    prisma.deal.findMany({ where: wonWhere, select: { createdAt: true, closedAt: true } }),
+    prisma.deal.groupBy({ by: ["ownerId"], where: wonWhere, _count: { _all: true }, _sum: { value: true } }),
+    prisma.activity.groupBy({ by: ["createdById"], where: { createdAt: { gte: from, lt: to } }, _count: { _all: true } }),
+    prisma.user.findMany({ select: { id: true, name: true, email: true } }),
+  ]);
+
+  const name = (id: string | null) => {
+    const u = users.find((x) => x.id === id);
+    return u?.name ?? u?.email ?? "Unknown";
+  };
+
+  const cycles = wonDeals
+    .filter((d) => d.closedAt)
+    .map((d) => (d.closedAt!.getTime() - d.createdAt.getTime()) / 86_400_000);
+  const avgCycleDays = cycles.length ? Math.round((cycles.reduce((a, b) => a + b, 0) / cycles.length) * 10) / 10 : null;
+
+  const leaderboard = wonByOwner
+    .map((g) => ({ name: name(g.ownerId), wonCount: g._count._all, wonValue: g._sum.value ?? 0 }))
+    .sort((a, b) => b.wonValue - a.wonValue);
+
+  const activityByUser = activityByOwner
+    .map((g) => ({ name: name(g.createdById), count: g._count._all }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    from: from.toISOString(),
+    to: to.toISOString(),
+    sales: {
+      created,
+      won,
+      lost,
+      winRate: won + lost > 0 ? won / (won + lost) : null,
+      wonValue: wonAgg._sum.value ?? 0,
+      avgCycleDays,
+    },
+    leaderboard,
+    activityByUser,
+  };
+}
