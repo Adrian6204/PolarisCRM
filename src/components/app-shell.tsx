@@ -2,6 +2,7 @@ import { Sidebar, MobileNav } from "./sidebar";
 import { BrandLockup } from "./brand";
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
+import { CommandPalette, CommandPaletteButton } from "./command-palette";
 
 /**
  * Authenticated app shell: persistent sidebar (desktop) / compact nav (mobile),
@@ -21,13 +22,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <BrandLockup className="h-7 w-auto" />
             </div>
             <div className="hidden lg:block" />
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
+              <CommandPaletteButton />
               <ThemeToggle />
               <div className="mx-1 h-6 w-px bg-line" />
               <UserMenu />
             </div>
           </div>
         </header>
+        <CommandPalette />
         <MobileNav />
         <main className="mx-auto w-full max-w-content flex-1 px-5 py-8 sm:px-6 animate-rise">
           {children}
