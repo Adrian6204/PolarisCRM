@@ -1,6 +1,7 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/lib/inngest";
 import { scanRetainerRenewals } from "@/features/renewals/jobs";
+import { scanReminders } from "@/features/notifications/jobs";
 
 /**
  * Inngest's function endpoint. Inngest (cloud or the local dev server) discovers
@@ -10,5 +11,5 @@ import { scanRetainerRenewals } from "@/features/renewals/jobs";
 // The signing key is read from INNGEST_SIGNING_KEY in the environment.
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [scanRetainerRenewals],
+  functions: [scanRetainerRenewals, scanReminders],
 });

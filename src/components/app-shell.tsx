@@ -3,6 +3,7 @@ import { BrandLockup } from "./brand";
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 import { CommandPalette, CommandPaletteButton } from "./command-palette";
+import { NotificationBell } from "./notification-bell";
 
 /**
  * Authenticated app shell: persistent sidebar (desktop) / compact nav (mobile),
@@ -24,6 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="hidden lg:block" />
             <div className="flex items-center gap-2">
               <CommandPaletteButton />
+              <NotificationBell />
               <ThemeToggle />
               <div className="mx-1 h-6 w-px bg-line" />
               <UserMenu />

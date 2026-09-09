@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/scan-renewals",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/scan-reminders",
+      "schedule": "0 * * * *"
     }
   ]
 }

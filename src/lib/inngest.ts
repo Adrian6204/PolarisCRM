@@ -16,4 +16,5 @@ export const inngest = new Inngest({
 /** Event names, centralized so producers and consumers can't drift. */
 export const EVENTS = {
   renewalsScanRequested: "renewals/scan.requested",
+  remindersScanRequested: "reminders/scan.requested",
 } as const;

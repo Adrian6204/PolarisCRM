@@ -45,9 +45,29 @@ model User {
   notes             Note[]
   appointments      Appointment[]
   availabilityRules AvailabilityRule[]
+  notifications     Notification[]
 
   @@index([role])
   @@map("users")
+}
+
+// In-app notification for a user (reminders, nudges). `dedupeKey` makes
+// reminder generation idempotent so a scan won't create duplicates.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  type      String
+  title     String
+  body      String?
+  href      String?
+  dedupeKey String?   @unique @map("dedupe_key")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
 }
 
 // --- Clients & Contacts (Phase 1) -----------------------------------------
