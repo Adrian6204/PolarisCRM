@@ -5,6 +5,7 @@ import { listClientsQuerySchema } from "@/features/clients/schema";
 import { listTags } from "@/features/tags/service";
 import { tagChipStyle } from "@/features/tags/display";
 import { ClientControls } from "./client-controls";
+import { ClientIO } from "./client-io";
 import { StatusBadge } from "@/components/status-badge";
 
 /**
@@ -36,14 +37,14 @@ export default async function ClientsPage({
           <h1 className="text-2xl font-semibold tracking-tight">Clients</h1>
           <p className="text-sm text-muted">{total} total</p>
         </div>
-        {writable && (
-          <Link
-            href="/clients/new"
-            className="btn btn-primary"
-          >
-            New client
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <ClientIO canImport={writable} />
+          {writable && (
+            <Link href="/clients/new" className="btn btn-primary">
+              New client
+            </Link>
+          )}
+        </div>
       </div>
 
       <ClientControls

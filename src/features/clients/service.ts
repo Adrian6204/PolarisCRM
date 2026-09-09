@@ -197,3 +197,65 @@ export async function softDeleteClient(id: string, opts: WriteOpts = {}) {
   });
   opts.log?.debug({ clientId: id }, "db write: client soft-deleted");
 }
+
+/** All non-deleted clients as flat rows for CSV export (name-ordered). */
+export async function clientsForExport(opts: { db?: Db } = {}) {
+  const db = opts.db ?? defaultPrisma;
+  return db.client.findMany({
+    where: notDeleted,
+    select: { name: true, industry: true, website: true, status: true, createdAt: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+export interface ImportResult {
+  created: number;
+  skipped: number;
+  errors: { row: number; message: string }[];
+}
+
+/**
+ * Bulk-create clients from parsed CSV rows. Each row is validated against the
+ * same create schema the API uses; rows whose name already exists (case-
+ * insensitive, non-deleted) are skipped, and invalid rows are reported by
+ * 1-based row number without aborting the rest.
+ */
+export async function importClients(
+  rows: Record<string, string>[],
+  createFn: (input: CreateClientInput) => Promise<{ id: string }>,
+  opts: { db?: Db } = {},
+): Promise<ImportResult> {
+  const db = opts.db ?? defaultPrisma;
+  const { createClientSchema } = await import("./schema");
+  const result: ImportResult = { created: 0, skipped: 0, errors: [] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const raw = rows[i];
+    // Accept a few common header spellings, case-insensitively.
+    const pick = (...keys: string[]) => {
+      for (const k of Object.keys(raw)) {
+        if (keys.includes(k.toLowerCase().trim())) return raw[k];
+      }
+      return undefined;
+    };
+    const candidate = {
+      name: pick("name", "client", "client name"),
+      industry: pick("industry"),
+      website: pick("website", "url"),
+      status: pick("status")?.toLowerCase(),
+    };
+    const parsed = createClientSchema.safeParse(candidate);
+    if (!parsed.success) {
+      result.errors.push({ row: i + 2, message: parsed.error.issues[0]?.message ?? "invalid row" });
+      continue;
+    }
+    const existing = await db.client.findFirst({
+      where: { name: { equals: parsed.data.name, mode: "insensitive" }, ...notDeleted },
+      select: { id: true },
+    });
+    if (existing) { result.skipped++; continue; }
+    await createFn(parsed.data);
+    result.created++;
+  }
+  return result;
+}
