@@ -52,7 +52,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
           <AlertDialog.Content
             className={cn(
               "fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2",
-              "card flex flex-col gap-4 p-5 data-[state=open]:animate-pop-in",
+              "card flex flex-col gap-4 p-5 data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out",
             )}
           >
             <div className="flex flex-col gap-1.5">

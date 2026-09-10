@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BrandLockup } from "@/components/brand";
@@ -102,7 +103,9 @@ function LoginForm() {
         </div>
 
         <p className="mt-6 text-center text-xs text-muted">
-          Polaris.Dev · internal use only
+          <Link href="/" className="link inline-flex items-center gap-1 hover:underline">
+            <span aria-hidden>←</span> Back to home
+          </Link>
         </p>
       </div>
     </main>

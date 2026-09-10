@@ -89,7 +89,10 @@ export function CommandPalette() {
 
   const hasAny = navMatches.length > 0 || grouped.length > 0;
   const showEmpty = !!q && !loading && !hasAny;
-  const groupHeading = "px-2 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wide text-muted [&_[cmdk-group-heading]]:px-0";
+  // Scope heading styling to the heading element only — putting `uppercase`/
+  // `tracking` on the whole group cascades into items and shrieks them in caps.
+  const groupHeading =
+    "[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-muted";
   const itemClass =
     "flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-sm text-fg outline-none aria-selected:bg-surface2 aria-selected:text-fg";
 
@@ -98,7 +101,7 @@ export function CommandPalette() {
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px] data-[state=open]:animate-fade-in" />
         <DialogPrimitive.Content
-          className="fixed left-1/2 top-[12%] z-50 w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-xl border border-line-strong bg-bg shadow-md data-[state=open]:animate-pop-in"
+          className="fixed inset-x-0 top-[12%] z-50 mx-auto w-[calc(100vw-2rem)] max-w-xl overflow-hidden rounded-xl border border-line-strong bg-bg shadow-md data-[state=open]:animate-pop-in data-[state=closed]:animate-pop-out"
           aria-label="Command palette"
         >
           <DialogPrimitive.Title className="sr-only">Search and navigate</DialogPrimitive.Title>

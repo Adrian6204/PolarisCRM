@@ -75,7 +75,7 @@ export function NotificationBell() {
         <Popover.Content
           align="end"
           sideOffset={8}
-          className="z-50 w-80 overflow-hidden rounded-lg border border-line bg-bg shadow-md data-[state=open]:animate-pop-in"
+          className="z-50 w-80 overflow-hidden rounded-lg border border-line bg-bg shadow-md data-[state=open]:animate-fade-in"
         >
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
             <span className="text-sm font-semibold">Notifications</span>

@@ -24,7 +24,7 @@ const DialogContent = React.forwardRef<
       className={cn(
         "fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2",
         "card flex max-h-[90vh] flex-col gap-4 overflow-y-auto p-5",
-        "data-[state=open]:animate-pop-in data-[state=closed]:animate-pop-out",
+        "data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out",
         className,
       )}
       {...props}
