@@ -4,6 +4,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 import { CommandPalette, CommandPaletteButton } from "./command-palette";
 import { NotificationBell } from "./notification-bell";
+import { WelcomeDialog } from "./welcome-dialog";
 
 /**
  * Authenticated app shell: persistent sidebar (desktop) / compact nav (mobile),
@@ -33,6 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <CommandPalette />
+        <WelcomeDialog />
         <MobileNav />
         <main className="mx-auto w-full max-w-content flex-1 px-5 py-8 sm:px-6 animate-rise">
           {children}
