@@ -2,87 +2,32 @@ name: Keep Database Alive
 
 on:
   schedule:
-    # Runs every 6 hours to prevent Supabase / serverless Postgres from sleeping due to inactivity
-    - cron: '0 */6 * * *'
-  workflow_dispatch:
-    inputs:
-      target_url:
-        description: 'Target URL to ping (e.g. https://polaris-crm.vercel.app)'
-        required: false
-        default: ''
+    # Runs every 3 days at 08:00 UTC to prevent Supabase from pausing (7-day inactivity rule)
+    - cron: "0 8 */3 * *"
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
-  ping-database:
-    name: Ping Database & Health Check
+  ping:
+    name: Ping Health Endpoint & DB
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js (for direct DB ping fallback)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Determine Target App URL
-        id: set-url
+      - name: Ping Health Endpoint
         run: |
-          URL="${{ github.event.inputs.target_url }}"
-          if [ -z "$URL" ]; then
-            URL="${{ secrets.APP_URL }}"
+          TARGET_URL="${{ secrets.APP_URL }}"
+          if [ -z "$TARGET_URL" ]; then
+            TARGET_URL="https://polariscrm-two.vercel.app"
           fi
-          if [ -z "$URL" ]; then
-            URL="${{ vars.APP_URL }}"
-          fi
-          if [ -z "$URL" ]; then
-            URL="${{ secrets.NEXTAUTH_URL }}"
-          fi
-          if [ -z "$URL" ]; then
-            echo "::notice ::Using default production URL: https://polariscrm-two.vercel.app"
-            URL="https://polariscrm-two.vercel.app"
-          fi
-          # Strip trailing slash if present
-          URL="${URL%/}"
-          echo "target_url=${URL}/api/health" >> $GITHUB_OUTPUT
+          
+          ENDPOINT="${TARGET_URL%/}/api/health"
+          echo "Pinging $ENDPOINT..."
+          
+          STATUS=$(curl -sL -o /dev/null -w "%{http_code}" -H "User-Agent: GitHub-Actions-KeepAlive" "$ENDPOINT")
+          echo "Health check HTTP status: $STATUS"
 
-      - name: Ping Web App Health Endpoint (/api/health)
-        id: http-ping
-        continue-on-error: true
-        run: |
-          ENDPOINT="${{ steps.set-url.outputs.target_url }}"
-          echo "Pinging ${ENDPOINT} to keep database active..."
-          
-          # Perform curl request and capture HTTP status code
-          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" "$ENDPOINT")
-          HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | awk -F: '{print $2}')
-          BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS")
-          
-          echo "Response Body: $BODY"
-          echo "HTTP Status: $HTTP_STATUS"
-          
-          if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✅ Health check successful! Database is active and responsive."
-            echo "ping_success=true" >> $GITHUB_OUTPUT
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+            echo "✅ Database and app are alive!"
           else
-            echo "⚠️ HTTP Ping returned status $HTTP_STATUS."
-            echo "ping_success=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Direct Database Ping Fallback (via Prisma)
-        if: steps.http-ping.outputs.ping_success != 'true' && secrets.DATABASE_URL != ''
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL || secrets.DATABASE_URL }}
-        run: |
-          echo "HTTP ping was not successful or unreached. Attempting direct Prisma DB ping..."
-          npm ci
-          npx prisma db execute --stdin <<< "SELECT 1;"
-          echo "✅ Direct database ping completed successfully."
-
-      - name: Final Result Validation
-        run: |
-          if [ "${{ steps.http-ping.outputs.ping_success }}" != "true" ] && [ -z "${{ secrets.DATABASE_URL }}" ]; then
-            echo "❌ HTTP ping failed and no DATABASE_URL secret was available for fallback."
+            echo "❌ Unexpected status: $STATUS"
             exit 1
           fi
