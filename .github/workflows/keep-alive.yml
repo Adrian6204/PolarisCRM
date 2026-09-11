@@ -39,8 +39,8 @@ jobs:
             URL="${{ secrets.NEXTAUTH_URL }}"
           fi
           if [ -z "$URL" ]; then
-            echo "::warning ::No APP_URL or NEXTAUTH_URL secret configured in GitHub repository. Defaulting to https://polaris-crm.vercel.app"
-            URL="https://polaris-crm.vercel.app"
+            echo "::notice ::Using default production URL: https://polariscrm-two.vercel.app"
+            URL="https://polariscrm-two.vercel.app"
           fi
           # Strip trailing slash if present
           URL="${URL%/}"
