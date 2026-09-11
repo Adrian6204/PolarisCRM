@@ -33,13 +33,17 @@ const FEATURES = [
 export function WelcomeDialog() {
   const [open, setOpen] = React.useState(false);
 
-  // Check on mount (client only) so there's no SSR/hydration mismatch.
+  // Check on mount (client only) so there's no SSR/hydration mismatch, and
+  // let anywhere in the app re-open it on demand ("What's new").
   React.useEffect(() => {
     try {
       if (!localStorage.getItem(SEEN_KEY)) setOpen(true);
     } catch {
       /* localStorage unavailable — just don't show it */
     }
+    const onOpen = () => setOpen(true);
+    document.addEventListener("welcome:open", onOpen);
+    return () => document.removeEventListener("welcome:open", onOpen);
   }, []);
 
   function dismiss() {

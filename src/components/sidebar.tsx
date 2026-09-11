@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandLockup } from "./brand";
+import { APP_VERSION } from "./welcome-dialog";
 import {
   IconDashboard,
   IconClients,
@@ -65,8 +66,14 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="px-5 py-4 text-xs text-muted">
-        <span className="font-mono-nums">Polaris.Dev</span>
+      <div className="px-3 py-4">
+        <button
+          onClick={() => document.dispatchEvent(new CustomEvent("welcome:open"))}
+          className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs text-muted transition-colors hover:bg-surface2 hover:text-fg"
+        >
+          <span className="font-mono-nums">Polaris.Dev · v{APP_VERSION}</span>
+          <span>What&rsquo;s new</span>
+        </button>
       </div>
     </aside>
   );
