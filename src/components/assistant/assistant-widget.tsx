@@ -89,7 +89,7 @@ export function AssistantWidget() {
         aria-expanded={open}
         className="btn btn-primary fixed bottom-6 right-6 z-40 h-12 w-12 !rounded-full !p-0 shadow-md transition-transform hover:scale-105"
       >
-        {open ? <IconClose /> : <IconSparkle />}
+        {open ? <IconClose /> : <IconPolaris size={22} />}
       </button>
 
       {open && (
@@ -102,7 +102,7 @@ export function AssistantWidget() {
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <div className="flex items-center gap-2.5">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-brand-fg">
-                <IconSparkle />
+                <IconPolaris size={17} />
               </span>
               <div className="flex flex-col leading-tight">
                 <span className="text-sm font-semibold">Polaris Assistant</span>
@@ -167,7 +167,7 @@ export function AssistantWidget() {
             }}
             className="border-t border-line p-3"
           >
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-1.5 rounded-xl border border-line-strong bg-bg px-2 py-1.5 transition-colors focus-within:border-fg">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -180,9 +180,14 @@ export function AssistantWidget() {
                 }}
                 rows={1}
                 placeholder="Ask about your CRM…"
-                className="input max-h-32 min-h-[2.5rem] flex-1 resize-none"
+                className="max-h-32 min-h-[1.75rem] flex-1 resize-none bg-transparent px-1 py-1 text-sm text-fg outline-none placeholder:text-muted"
               />
-              <button type="submit" disabled={!input.trim() || busy} className="btn btn-primary !p-2.5" aria-label="Send">
+              <button
+                type="submit"
+                disabled={!input.trim() || busy}
+                className="btn btn-primary !rounded-lg !p-2 shrink-0"
+                aria-label="Send"
+              >
                 <IconSend />
               </button>
             </div>
@@ -230,59 +235,64 @@ function Bubble({
   // Assistant: typing indicator until the first token arrives, then Markdown.
   const empty = !msg.content;
   return (
-    <div className="group flex flex-col gap-1">
-      <div className="panel max-w-[92%] rounded-lg px-3 py-2 text-fg">
-        {empty && busy ? (
-          <TypingDots />
-        ) : (
-          <div className="chat-md">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                a: ({ href, children }) => {
-                  const url = href ?? "";
-                  const internal = url.startsWith("/");
-                  if (internal) {
+    <div className="group flex gap-2.5">
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface2 text-fg">
+        <IconPolaris size={15} />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="w-fit max-w-full rounded-2xl rounded-tl-sm bg-surface px-3.5 py-2.5 text-fg shadow-sm">
+          {empty && busy ? (
+            <TypingDots />
+          ) : (
+            <div className="chat-md">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: ({ href, children }) => {
+                    const url = href ?? "";
+                    const internal = url.startsWith("/");
+                    if (internal) {
+                      return (
+                        <a
+                          href={url}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            router.push(url);
+                            onClose();
+                          }}
+                        >
+                          {children}
+                        </a>
+                      );
+                    }
                     return (
-                      <a
-                        href={url}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          router.push(url);
-                          onClose();
-                        }}
-                      >
+                      <a href={url} target="_blank" rel="noopener noreferrer">
                         {children}
                       </a>
                     );
-                  }
-                  return (
-                    <a href={url} target="_blank" rel="noopener noreferrer">
-                      {children}
-                    </a>
-                  );
-                },
-              }}
-            >
-              {msg.content}
-            </ReactMarkdown>
-          </div>
+                  },
+                }}
+              >
+                {msg.content}
+              </ReactMarkdown>
+            </div>
+          )}
+        </div>
+        {!empty && !busy && (
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard?.writeText(msg.content).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              });
+            }}
+            className="w-fit px-1 text-[11px] text-muted opacity-0 transition-opacity hover:text-fg group-hover:opacity-100"
+          >
+            {copied ? "Copied ✓" : "Copy"}
+          </button>
         )}
       </div>
-      {!empty && !busy && (
-        <button
-          type="button"
-          onClick={() => {
-            navigator.clipboard?.writeText(msg.content).then(() => {
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            });
-          }}
-          className="w-fit text-[11px] text-muted opacity-0 transition-opacity hover:text-fg group-hover:opacity-100"
-        >
-          {copied ? "Copied ✓" : "Copy"}
-        </button>
-      )}
     </div>
   );
 }
@@ -301,10 +311,16 @@ function TypingDots() {
   );
 }
 
-function IconSparkle() {
+/** The Polaris north-star mark, drawn with currentColor so it inherits the
+ *  parent's text color (visible on the brand launcher and neutral avatar). */
+function IconPolaris({ size = 18 }: { size?: number }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9L12 2zM19 14l.9 2.4L22 17l-2.1.8L19 20l-.9-2.2L16 17l2.1-.6L19 14z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12 1.6c.5 4.9 2.4 7.2 8.9 8.1v.2c-6.5.9-8.4 3.2-8.9 8.1h-.2c-.5-4.9-2.4-7.2-8.9-8.1v-.2c6.5-.9 8.4-3.2 8.9-8.1h.2Z" />
+      <path
+        d="M18.8 15.2c.2 1.9.9 2.8 3.4 3.1v.1c-2.5.3-3.2 1.2-3.4 3.1h-.1c-.2-1.9-.9-2.8-3.4-3.1v-.1c2.5-.3 3.2-1.2 3.4-3.1h.1Z"
+        opacity="0.55"
+      />
     </svg>
   );
 }
