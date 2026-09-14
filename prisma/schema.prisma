@@ -47,9 +47,36 @@ model User {
   availabilityRules AvailabilityRule[]
   notifications     Notification[]
   attachments       Attachment[]
+  apiKeys           ApiKey[]
 
   @@index([role])
   @@map("users")
+}
+
+// Personal access token for headless clients (the MCP server). Scoped to a
+// single user so an agent acting through a key inherits that user's role — the
+// same requireRole checks the web app enforces apply unchanged. The raw key is
+// shown once at creation and never stored; only its SHA-256 `hash` is kept, so
+// a DB leak can't reveal usable credentials. Soft-revoked via `revokedAt` to
+// preserve the audit trail of what a key did while it was live.
+model ApiKey {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  name      String
+  // SHA-256 hex of the raw token; the lookup is by this value.
+  hash      String    @unique
+  // First few chars of the raw key (e.g. "pcrm_ab12"), for display/disambiguation.
+  prefix    String
+  lastUsed  DateTime? @map("last_used")
+  // Optional hard expiry; a key past this instant is rejected like a revoked one.
+  expiresAt DateTime? @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("api_keys")
 }
 
 // In-app notification for a user (reminders, nudges). `dedupeKey` makes

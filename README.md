@@ -49,6 +49,37 @@ schedule in [vercel.json](./vercel.json), authenticated with `CRON_SECRET`.
 Seeded logins (local only): `admin@polaris.dev`, `lead@polaris.dev`,
 `member@polaris.dev` — all password `password123`.
 
+### Remote MCP server (agent access)
+
+The CRM exposes a remote [MCP](https://modelcontextprotocol.io) server at
+`/api/mcp` (Streamable HTTP) so AI agents (e.g. Claude) can drive it with the
+same rules as the web app. Tools are thin adapters over the feature services in
+[src/features](src/features), so auth, validation, audit logging, automations,
+and soft-delete all behave identically.
+
+- **Off by default.** The endpoint 404s unless `MCP_ENABLED=true`. In production
+  it also refuses to serve (503) if Upstash isn't configured, so the public,
+  mutating surface is never live without rate limiting.
+- **Auth is per-user API keys.** Managed at **Settings → API keys** (hashed with
+  SHA-256, shown once, optional expiry, revocable). A key acts with its owner's
+  role — an agent can do exactly what that user can, and every write is audited
+  under their name. Send it as `Authorization: Bearer <key>`.
+- **Guardrails.** Per-IP rate limit before auth, per-key limit after; role gates
+  match the HTTP routes (writes need admin / project lead); destructive tools
+  require `confirm: true`.
+
+Enabling it in production:
+
+1. Apply the `api_keys` table (see `prisma/migrations/*_add_api_keys`). This repo's
+   hosted DB is managed with `prisma db push`; **`db push` does not enable RLS**,
+   so after pushing run the `ENABLE ROW LEVEL SECURITY` statement from that
+   migration (matching every other table). Verify with the Supabase security
+   advisor.
+2. Set `MCP_ENABLED=true` (and confirm `UPSTASH_*` are set) in the Vercel
+   environment.
+3. Point the MCP client at `https://<domain>/api/mcp` with a Bearer key minted in
+   Settings.
+
 ## Architecture conventions
 
 These cross-cutting patterns apply to **every** API route (see SPEC):
