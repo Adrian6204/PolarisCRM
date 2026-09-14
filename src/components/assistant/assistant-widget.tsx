@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { BrandLockup, BrandMark } from "@/components/brand";
+import { BrandMark } from "@/components/brand";
 
 /**
  * Floating in-app assistant. A launcher (bottom-right) opens a chat panel
@@ -101,11 +101,16 @@ export function AssistantWidget() {
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <div className="flex flex-col gap-1.5">
-              <BrandLockup className="h-5 w-auto" />
-              <span className="flex items-center gap-1.5 text-xs text-muted">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Assistant · online · read-only
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface2">
+                <BrandMark className="h-[18px] w-[18px]" />
               </span>
+              <div className="flex flex-col leading-tight">
+                <span className="text-sm font-semibold">Polaris Assistant</span>
+                <span className="flex items-center gap-1.5 text-xs text-muted">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Online · read-only
+                </span>
+              </div>
             </div>
             <div className="flex items-center gap-1">
               {messages.length > 0 && (
