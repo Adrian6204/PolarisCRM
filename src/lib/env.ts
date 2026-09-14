@@ -50,6 +50,12 @@ const envSchema = z.object({
     .enum(["true", "false"])
     .optional()
     .default("false"),
+
+  // Groq API for the in-app assistant. Optional: when unset the assistant
+  // widget is hidden and the endpoint reports "not configured". GROQ_MODEL
+  // overrides the default tool-capable model.
+  GROQ_API_KEY: z.string().optional(),
+  GROQ_MODEL: z.string().optional(),
 });
 
 function loadEnv() {
@@ -81,4 +87,14 @@ export const hasStorage = Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_
 
 /** True when the remote MCP endpoint is enabled for this environment. */
 export const mcpEnabled = env.MCP_ENABLED === "true";
+
+/** True when the in-app Groq assistant is configured. */
+export const hasAssistant = Boolean(env.GROQ_API_KEY);
+
+/**
+ * Default Groq model (tool-capable) when GROQ_MODEL is unset. `openai/gpt-oss-120b`
+ * is the strongest general model in the current Groq catalog and supports
+ * function calling; set GROQ_MODEL to `openai/gpt-oss-20b` for lower latency.
+ */
+export const groqModel = env.GROQ_MODEL ?? "openai/gpt-oss-120b";
 
