@@ -6,7 +6,7 @@ import { hashKey, looksLikeApiKey } from "./keys";
 /**
  * The authenticated actor behind an MCP request. Mirrors the shape of the
  * session-derived `AuthedUser` so tools can reuse the same `assertRole` gate the
- * web routes use — an agent acting through a key is just a user with a role.
+ * web routes use, an agent acting through a key is just a user with a role.
  */
 export interface McpActor {
   id: string;
@@ -28,7 +28,7 @@ export async function resolveApiKey(raw: string | undefined | null): Promise<Mcp
     include: { user: true },
   });
 
-  // Uniform "unauthorized" for every failure mode — never disclose whether a
+  // Uniform "unauthorized" for every failure mode, never disclose whether a
   // key exists, is revoked, expired, or maps to a disabled account.
   const expired = record?.expiresAt != null && record.expiresAt.getTime() <= Date.now();
   if (!record || record.revokedAt || expired || !record.user.active) {

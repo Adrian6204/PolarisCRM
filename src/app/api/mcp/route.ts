@@ -22,7 +22,7 @@ import { enforceRateLimit } from "@/lib/ratelimit";
  * Defense in depth: a per-IP limit runs *before* token verification, so
  * unauthenticated requests can't hammer the DB key-lookup (post-auth, per-key
  * limits in the tool guard bound authenticated abuse). NB: rate limiting
- * degrades open when Upstash isn't configured — keep it set in any environment
+ * degrades open when Upstash isn't configured, keep it set in any environment
  * where MCP_ENABLED is true.
  */
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ const baseHandler = createMcpHandler(
   (server: McpServer) => {
     registerTools(server);
   },
-  // ServerOptions (capabilities/instructions) — defaults are fine.
+  // ServerOptions (capabilities/instructions), defaults are fine.
   {},
   // Handler config. No redisUrl → stateless request/response (no SSE), which is
   // exactly what a tools-only server needs on serverless. basePath must match
@@ -69,14 +69,14 @@ function clientIp(req: Request): string {
 
 async function handler(req: Request): Promise<Response> {
   if (!mcpEnabled) {
-    logger.debug("mcp request rejected — MCP_ENABLED is not 'true'");
+    logger.debug("mcp request rejected, MCP_ENABLED is not 'true'");
     return new Response("Not found", { status: 404 });
   }
 
   // Fail closed: never expose a public, mutating endpoint in production without
   // the rate limiter, which would otherwise degrade open (see ratelimit.ts).
   if (isProd && !hasRedis) {
-    logger.error("mcp endpoint enabled in production without Upstash — refusing requests");
+    logger.error("mcp endpoint enabled in production without Upstash, refusing requests");
     return new Response(
       JSON.stringify({ error: { code: "internal_error", message: "MCP endpoint misconfigured" } }),
       { status: 503, headers: { "content-type": "application/json" } },

@@ -6,7 +6,7 @@ const LOAD_TIMEOUT = 60_000;
 
 /**
  * In-process integration test for the MCP endpoint. Drives the actual route
- * handler with web-standard Requests — no DB and no network — to verify the
+ * handler with web-standard Requests, no DB and no network, to verify the
  * pieces unit tests can't: the transport responds without Redis (stateless),
  * the MCP_ENABLED gate, bearer-auth rejection, and that the full tool set
  * registers and is listable after a handshake.

@@ -52,7 +52,7 @@ import { getClientTimeline } from "@/features/timeline/service";
 import { search } from "@/features/search/service";
 import { getUpcomingRenewals } from "@/features/renewals/service";
 
-/** Roles allowed to mutate core records — matches the web write routes. */
+/** Roles allowed to mutate core records, matches the web write routes. */
 const WRITERS = [Role.admin, Role.project_lead];
 /** A confirm flag every destructive tool carries (see the confirm gate below). */
 const confirmField = {
@@ -128,7 +128,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Get client timeline",
       description:
-        "The unified reverse-chronological history for a client — logged activities (calls/emails/meetings/notes) merged with free-form notes. Use to 'catch up' on an account.",
+        "The unified reverse-chronological history for a client, logged activities (calls/emails/meetings/notes) merged with free-form notes. Use to 'catch up' on an account.",
       inputSchema: {
         clientId: z.string().describe("Client id."),
         limit: z.coerce.number().int().min(1).max(500).optional().describe("Max events (default 100)."),
@@ -321,7 +321,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Update project",
       description:
-        "Update a project — stage transitions, status, dates, name. Service/engagement type cannot be changed here.",
+        "Update a project, stage transitions, status, dates, name. Service/engagement type cannot be changed here.",
       inputSchema: toShape(updateProjectSchema, { id: z.string().describe("Project id.") }),
       annotations: { readOnlyHint: false },
     },
@@ -425,7 +425,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Update deal",
       description:
-        "Update a deal — move it along its pipeline stages, change value/owner/notes. Cannot move a deal across pipelines.",
+        "Update a deal, move it along its pipeline stages, change value/owner/notes. Cannot move a deal across pipelines.",
       inputSchema: toShape(updateDealSchema, { id: z.string().describe("Deal id.") }),
       annotations: { readOnlyHint: false },
     },

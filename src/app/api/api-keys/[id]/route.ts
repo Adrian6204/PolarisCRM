@@ -2,7 +2,7 @@ import { withApiRoute, ok } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
 import { revokeApiKey } from "@/features/api-keys/service";
 
-/** /api/api-keys/:id — revoke one of my keys (owner-scoped in the service). */
+/** /api/api-keys/:id, revoke one of my keys (owner-scoped in the service). */
 export const dynamic = "force-dynamic";
 
 export const DELETE = withApiRoute(

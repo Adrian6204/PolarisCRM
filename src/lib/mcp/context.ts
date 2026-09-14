@@ -10,7 +10,7 @@ import type { McpActor } from "./auth";
 /**
  * Shared plumbing for MCP tools. A tool is a thin adapter: it authenticates via
  * the actor carried on the request's AuthInfo, enforces the *same* role gate the
- * matching HTTP route uses, then delegates to an existing feature service — so
+ * matching HTTP route uses, then delegates to an existing feature service, so
  * audit logging and automations fire exactly as they do for the web app.
  */
 
@@ -36,7 +36,7 @@ export function getActor(extra: ToolExtra): McpActor {
   return actor;
 }
 
-/** WriteOpts every write service accepts — attributes the change to the actor. */
+/** WriteOpts every write service accepts, attributes the change to the actor. */
 export function writeOpts(actor: McpActor, log: Logger) {
   return { actorId: actor.id, log };
 }

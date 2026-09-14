@@ -62,7 +62,7 @@ and soft-delete all behave identically.
   mutating surface is never live without rate limiting.
 - **Auth is per-user API keys.** Managed at **Settings → API keys** (hashed with
   SHA-256, shown once, optional expiry, revocable). A key acts with its owner's
-  role — an agent can do exactly what that user can, and every write is audited
+  role, so an agent can do exactly what that user can, and every write is audited
   under their name. Send it as `Authorization: Bearer <key>`.
 - **Guardrails.** Per-IP rate limit before auth, per-key limit after; role gates
   match the HTTP routes (writes need admin / project lead); destructive tools

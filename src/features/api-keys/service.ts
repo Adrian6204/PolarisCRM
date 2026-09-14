@@ -7,7 +7,7 @@ import type { CreateApiKeyInput } from "./schema";
 
 /**
  * API-key management. Keys are personal access tokens for the MCP server, scoped
- * to their owning user. The raw secret exists only at creation time — we persist
+ * to their owning user. The raw secret exists only at creation time, we persist
  * the SHA-256 hash (see @/lib/mcp/keys) and return the raw value once for the
  * user to copy. Revocation is a soft state (`revokedAt`) so the audit of what a
  * key did survives.
@@ -47,7 +47,7 @@ export function listApiKeys(userId: string, opts: { db?: Db } = {}): Promise<Api
 
 export interface CreatedApiKey {
   summary: ApiKeySummary;
-  /** The full secret — shown once, never retrievable again. */
+  /** The full secret, shown once, never retrievable again. */
   raw: string;
 }
 

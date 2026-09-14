@@ -6,8 +6,8 @@ import { createHash, randomBytes } from "node:crypto";
  *   pcrm_<43 url-safe base64 chars>   (256 bits of entropy)
  *
  * Only the SHA-256 hash is ever persisted (see the ApiKey model); the raw key
- * is returned once at creation and shown to the user a single time. SHA-256 —
- * not bcrypt — is deliberate here: the token is high-entropy random, so there
+ * is returned once at creation and shown to the user a single time. SHA-256,
+ * not bcrypt, is deliberate here: the token is high-entropy random, so there
  * is nothing to brute-force, and lookups must be a single indexed equality on
  * the hash (bcrypt's per-row salt would force a full scan).
  */
@@ -16,7 +16,7 @@ const PREFIX = "pcrm_";
 const DISPLAY_LEN = PREFIX.length + 4;
 
 export interface GeneratedKey {
-  /** The full secret — returned once, never stored. */
+  /** The full secret, returned once, never stored. */
   raw: string;
   /** SHA-256 hex of `raw`; this is what the DB stores and looks up on. */
   hash: string;
@@ -30,7 +30,7 @@ export function generateApiKey(): GeneratedKey {
   return { raw, hash: hashKey(raw), prefix: raw.slice(0, DISPLAY_LEN) };
 }
 
-/** SHA-256 hex of a raw key — the value stored and queried in `api_keys.hash`. */
+/** SHA-256 hex of a raw key, the value stored and queried in `api_keys.hash`. */
 export function hashKey(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }

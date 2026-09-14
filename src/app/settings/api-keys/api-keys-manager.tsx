@@ -28,7 +28,7 @@ interface CreatedKey {
 }
 
 const fmt = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
+  iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "-";
 
 export function ApiKeysManager({ endpoint, keys }: { endpoint: string; keys: KeyV[] }) {
   const router = useRouter();
@@ -36,7 +36,7 @@ export function ApiKeysManager({ endpoint, keys }: { endpoint: string; keys: Key
   const [expiresInDays, setExpiresInDays] = useState(90);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  // The raw secret is returned exactly once, on creation — held in memory only.
+  // The raw secret is returned exactly once, on creation, held in memory only.
   const [freshKey, setFreshKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -83,7 +83,7 @@ export function ApiKeysManager({ endpoint, keys }: { endpoint: string; keys: Key
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Claude Desktop – my laptop"
+              placeholder="e.g. Claude Desktop for my laptop"
               className="input"
               required
               maxLength={80}
@@ -115,7 +115,7 @@ export function ApiKeysManager({ endpoint, keys }: { endpoint: string; keys: Key
       {freshKey && (
         <div className="card flex flex-col gap-2 border-green-300 bg-green-50 p-4 dark:border-green-900/50 dark:bg-green-950/40">
           <h2 className="text-sm font-semibold text-green-900 dark:text-green-200">
-            Copy your key now — it won’t be shown again
+            Copy your key now, it won’t be shown again
           </h2>
           <div className="flex items-center gap-2">
             <code className="flex-1 overflow-x-auto rounded bg-black/10 px-2 py-1.5 font-mono text-xs dark:bg-white/10">
