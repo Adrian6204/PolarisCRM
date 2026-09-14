@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 /**
  * Floating in-app assistant. A launcher (bottom-right) opens a chat panel
  * available on every authenticated page. Replies stream token-by-token from
- * /api/assistant. Read-only: the assistant answers and guides, it never writes.
+ * /api/assistant and render as Markdown. Read-only: it answers and guides,
+ * never writes. Links to CRM records navigate in-app.
  */
 interface Msg {
   role: "user" | "assistant";
@@ -15,10 +19,11 @@ interface Msg {
 const SUGGESTIONS = [
   "Which retainers renew soon?",
   "Show me active clients",
-  "What's the status of my deliverables?",
+  "Summarize what's happening with a client",
 ];
 
 export function AssistantWidget() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -39,7 +44,6 @@ export function AssistantWidget() {
     if (!content || busy) return;
     setInput("");
     const history = [...messages, { role: "user" as const, content }];
-    // Optimistically add the user turn plus an empty assistant turn to stream into.
     setMessages([...history, { role: "assistant", content: "" }]);
     setBusy(true);
 
@@ -68,7 +72,7 @@ export function AssistantWidget() {
         acc += decoder.decode(value, { stream: true });
         setMessages((m) => setLast(m, acc));
       }
-      if (!acc.trim()) setMessages((m) => setLast(m, "(no response)"));
+      if (!acc.trim()) setMessages((m) => setLast(m, "_(no response)_"));
     } catch {
       setMessages((m) => setLast(m, "Sorry, something went wrong. Please try again."));
     } finally {
@@ -78,46 +82,59 @@ export function AssistantWidget() {
 
   return (
     <>
-      {/* Launcher */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Close assistant" : "Open assistant"}
         aria-expanded={open}
-        className="btn btn-primary fixed bottom-6 right-6 z-40 h-12 w-12 !rounded-full !p-0 shadow-md"
+        className="btn btn-primary fixed bottom-6 right-6 z-40 h-12 w-12 !rounded-full !p-0 shadow-md transition-transform hover:scale-105"
       >
-        {open ? <IconClose /> : <IconChat />}
+        {open ? <IconClose /> : <IconSparkle />}
       </button>
 
       {open && (
         <div
           role="dialog"
           aria-label="Polaris assistant"
-          className="card fixed bottom-24 right-6 z-40 flex h-[560px] max-h-[calc(100vh-8rem)] w-[380px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden animate-pop-in"
+          className="card fixed bottom-24 right-6 z-40 flex h-[600px] max-h-[calc(100vh-8rem)] w-[400px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden animate-pop-in"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold">Assistant</span>
-              <span className="text-xs text-muted">Answers about your CRM</span>
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-brand-fg">
+                <IconSparkle />
+              </span>
+              <div className="flex flex-col leading-tight">
+                <span className="text-sm font-semibold">Polaris Assistant</span>
+                <span className="flex items-center gap-1.5 text-xs text-muted">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500" /> Online · read-only
+                </span>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close"
-              className="btn btn-ghost !p-1.5"
-            >
-              <IconClose />
-            </button>
+            <div className="flex items-center gap-1">
+              {messages.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setMessages([])}
+                  className="btn btn-ghost !px-2 !py-1 text-xs"
+                  title="New chat"
+                >
+                  New chat
+                </button>
+              )}
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="btn btn-ghost !p-1.5">
+                <IconClose />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
             {messages.length === 0 ? (
               <div className="flex flex-col gap-3">
                 <p className="text-sm text-muted">
-                  Hi! Ask me about your clients, projects, deals, tasks, or renewals, or how to get
-                  around the CRM.
+                  Hi! I can answer questions about your clients, projects, deals, tasks, and renewals, or
+                  help you get around the CRM. Try one of these:
                 </p>
                 <div className="flex flex-col gap-2">
                   {SUGGESTIONS.map((s) => (
@@ -125,15 +142,20 @@ export function AssistantWidget() {
                       key={s}
                       type="button"
                       onClick={() => send(s)}
-                      className="panel rounded-md px-3 py-2 text-left text-sm text-fg transition-colors hover:bg-surface2"
+                      className="panel flex items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-fg transition-colors hover:bg-surface2"
                     >
+                      <span className="text-muted">
+                        <IconArrow />
+                      </span>
                       {s}
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
-              messages.map((m, i) => <Bubble key={i} msg={m} busy={busy && i === messages.length - 1} />)
+              messages.map((m, i) => (
+                <Bubble key={i} msg={m} busy={busy && i === messages.length - 1} router={router} onClose={() => setOpen(false)} />
+              ))
             )}
           </div>
 
@@ -157,13 +179,16 @@ export function AssistantWidget() {
                   }
                 }}
                 rows={1}
-                placeholder="Ask anything…"
+                placeholder="Ask about your CRM…"
                 className="input max-h-32 min-h-[2.5rem] flex-1 resize-none"
               />
               <button type="submit" disabled={!input.trim() || busy} className="btn btn-primary !p-2.5" aria-label="Send">
                 <IconSend />
               </button>
             </div>
+            <p className="mt-1.5 px-1 text-[10px] text-muted">
+              Polaris can make mistakes. Verify important details.
+            </p>
           </form>
         </div>
       )}
@@ -171,7 +196,6 @@ export function AssistantWidget() {
   );
 }
 
-/** Replace the content of the last message (the streaming assistant turn). */
 function setLast(msgs: Msg[], content: string): Msg[] {
   if (msgs.length === 0) return msgs;
   const copy = msgs.slice();
@@ -179,25 +203,108 @@ function setLast(msgs: Msg[], content: string): Msg[] {
   return copy;
 }
 
-function Bubble({ msg, busy }: { msg: Msg; busy: boolean }) {
+function Bubble({
+  msg,
+  busy,
+  router,
+  onClose,
+}: {
+  msg: Msg;
+  busy: boolean;
+  router: ReturnType<typeof useRouter>;
+  onClose: () => void;
+}) {
   const isUser = msg.role === "user";
-  return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
-          isUser ? "bg-brand text-brand-fg" : "panel text-fg"
-        }`}
-      >
-        {msg.content || (busy ? <span className="text-muted">Thinking…</span> : null)}
+  const [copied, setCopied] = useState(false);
+
+  if (isUser) {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[85%] whitespace-pre-wrap rounded-lg bg-brand px-3 py-2 text-sm text-brand-fg">
+          {msg.content}
+        </div>
       </div>
+    );
+  }
+
+  // Assistant: typing indicator until the first token arrives, then Markdown.
+  const empty = !msg.content;
+  return (
+    <div className="group flex flex-col gap-1">
+      <div className="panel max-w-[92%] rounded-lg px-3 py-2 text-fg">
+        {empty && busy ? (
+          <TypingDots />
+        ) : (
+          <div className="chat-md">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ href, children }) => {
+                  const url = href ?? "";
+                  const internal = url.startsWith("/");
+                  if (internal) {
+                    return (
+                      <a
+                        href={url}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          router.push(url);
+                          onClose();
+                        }}
+                      >
+                        {children}
+                      </a>
+                    );
+                  }
+                  return (
+                    <a href={url} target="_blank" rel="noopener noreferrer">
+                      {children}
+                    </a>
+                  );
+                },
+              }}
+            >
+              {msg.content}
+            </ReactMarkdown>
+          </div>
+        )}
+      </div>
+      {!empty && !busy && (
+        <button
+          type="button"
+          onClick={() => {
+            navigator.clipboard?.writeText(msg.content).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            });
+          }}
+          className="w-fit text-[11px] text-muted opacity-0 transition-opacity hover:text-fg group-hover:opacity-100"
+        >
+          {copied ? "Copied ✓" : "Copy"}
+        </button>
+      )}
     </div>
   );
 }
 
-function IconChat() {
+function TypingDots() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.9-.9L3 21l1.9-5.6a8.5 8.5 0 0 1-.9-3.9A8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z" />
+    <span className="flex items-center gap-1 py-1" aria-label="Assistant is typing">
+      {[0, 150, 300].map((d) => (
+        <span
+          key={d}
+          className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted"
+          style={{ animationDelay: `${d}ms` }}
+        />
+      ))}
+    </span>
+  );
+}
+
+function IconSparkle() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12 2l1.9 5.1L19 9l-5.1 1.9L12 16l-1.9-5.1L5 9l5.1-1.9L12 2zM19 14l.9 2.4L22 17l-2.1.8L19 20l-.9-2.2L16 17l2.1-.6L19 14z" />
     </svg>
   );
 }
@@ -212,6 +319,13 @@ function IconSend() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" />
+    </svg>
+  );
+}
+function IconArrow() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M5 12h14M13 6l6 6-6 6" />
     </svg>
   );
 }
