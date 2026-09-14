@@ -17,6 +17,23 @@ export function BrandLockup({ className = "" }: { className?: string }) {
 }
 
 /**
+ * The real Polaris mark (chrome north-star), extracted from the favicon to a
+ * standalone asset. Square, so it works in round icons/avatars. `.brand-logo`
+ * inverts it to light on dark themes so it reads on any surface.
+ */
+export function BrandMark({ className = "" }: { className?: string }) {
+  return (
+    <img
+      src="/brand/polaris-mark.svg"
+      alt=""
+      aria-hidden="true"
+      className={`brand-logo select-none ${className}`}
+      draggable={false}
+    />
+  );
+}
+
+/**
  * Polaris mark — a geometric four-point "north star" built from SVG primitives.
  * Kept as a lightweight fallback / favicon-style mark.
  */

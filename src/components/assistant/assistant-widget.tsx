@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { BrandLockup } from "@/components/brand";
+import { BrandLockup, BrandMark } from "@/components/brand";
 
 /**
  * Floating in-app assistant. A launcher (bottom-right) opens a chat panel
@@ -88,9 +88,9 @@ export function AssistantWidget() {
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Close assistant" : "Open assistant"}
         aria-expanded={open}
-        className="btn btn-primary fixed bottom-6 right-6 z-40 h-12 w-12 !rounded-full !p-0 shadow-md transition-transform hover:scale-105"
+        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-line-strong bg-bg text-fg shadow-md transition-transform hover:scale-105"
       >
-        {open ? <IconClose /> : <IconPolaris size={22} />}
+        {open ? <IconClose /> : <BrandMark className="h-6 w-6" />}
       </button>
 
       {open && (
@@ -232,8 +232,8 @@ function Bubble({
   const empty = !msg.content;
   return (
     <div className="group flex gap-2.5">
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface2 text-fg">
-        <IconPolaris size={15} />
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface2">
+        <BrandMark className="h-4 w-4" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="w-fit max-w-full rounded-2xl rounded-tl-sm bg-surface px-3.5 py-2.5 text-fg shadow-sm">
@@ -307,19 +307,6 @@ function TypingDots() {
   );
 }
 
-/** The Polaris north-star mark, drawn with currentColor so it inherits the
- *  parent's text color (visible on the brand launcher and neutral avatar). */
-function IconPolaris({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 1.6c.5 4.9 2.4 7.2 8.9 8.1v.2c-6.5.9-8.4 3.2-8.9 8.1h-.2c-.5-4.9-2.4-7.2-8.9-8.1v-.2c6.5-.9 8.4-3.2 8.9-8.1h.2Z" />
-      <path
-        d="M18.8 15.2c.2 1.9.9 2.8 3.4 3.1v.1c-2.5.3-3.2 1.2-3.4 3.1h-.1c-.2-1.9-.9-2.8-3.4-3.1v-.1c2.5-.3 3.2-1.2 3.4-3.1h.1Z"
-        opacity="0.55"
-      />
-    </svg>
-  );
-}
 function IconClose() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
