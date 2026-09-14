@@ -43,6 +43,13 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["debug", "info", "warn", "error"])
     .optional(),
+
+  // Feature flag for the remote MCP endpoint (headless agent access). Defaults
+  // off so the public tool surface is opt-in per environment.
+  MCP_ENABLED: z
+    .enum(["true", "false"])
+    .optional()
+    .default("false"),
 });
 
 function loadEnv() {
@@ -71,4 +78,7 @@ export const hasRedis = Boolean(
 
 /** True when Supabase Storage is configured (file attachments active). */
 export const hasStorage = Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
+
+/** True when the remote MCP endpoint is enabled for this environment. */
+export const mcpEnabled = env.MCP_ENABLED === "true";
 

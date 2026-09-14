@@ -128,6 +128,16 @@ export async function requireUser(): Promise<AuthedUser> {
 /** Throw 401 if unauthenticated, 403 if the role isn't in `allowed`. */
 export async function requireRole(...allowed: Role[]): Promise<AuthedUser> {
   const user = await requireUser();
-  if (!allowed.includes(user.role)) throw ApiError.forbidden();
+  assertRole(user.role, ...allowed);
   return user;
+}
+
+/**
+ * Pure role gate — throws 403 if `role` isn't in `allowed`. Extracted from
+ * requireRole so non-HTTP entry points (the MCP server, which resolves its
+ * actor from an API key rather than a session) enforce authorization with the
+ * exact same logic the web routes use.
+ */
+export function assertRole(role: Role, ...allowed: Role[]): void {
+  if (!allowed.includes(role)) throw ApiError.forbidden();
 }

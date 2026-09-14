@@ -9,6 +9,7 @@ const TABS = [
   { href: "/settings/pipelines", label: "Pipelines" },
   { href: "/settings/availability", label: "Availability" },
   { href: "/settings/automations", label: "Automations" },
+  { href: "/settings/api-keys", label: "API keys" },
 ];
 
 /** Sub-navigation for the settings area. */
