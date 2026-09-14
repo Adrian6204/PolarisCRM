@@ -18,12 +18,65 @@ export interface ChatMessage {
   content: string;
 }
 
-const MAX_TOOL_ROUNDS = 4;
+const MAX_TOOL_ROUNDS = 3;
 const TEMPERATURE = 0.3;
-const MAX_TOKENS = 1024;
+// Reserved output tokens count against Groq's per-minute token budget, so keep
+// this modest — replies are short, and a lower cap means fewer rate-limit hits.
+const MAX_TOKENS = 700;
 
 // groq-sdk mirrors the OpenAI message shape; keep a loose local type.
 type ConvoMessage = Record<string, unknown>;
+
+/** The streamed-chunk shape we read (subset of the SDK's ChatCompletionChunk). */
+type StreamChunk = {
+  choices: {
+    delta?: {
+      content?: string | null;
+      tool_calls?: { index: number; id?: string; function?: { name?: string; arguments?: string } }[];
+    };
+  }[];
+};
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** True for Groq's rate-limit (429) errors. */
+function isRateLimit(err: unknown): boolean {
+  return (err as { status?: number })?.status === 429;
+}
+
+/** Seconds to wait from a 429's Retry-After header, if present. */
+function retryAfterMs(err: unknown): number | null {
+  const h = (err as { headers?: unknown })?.headers as
+    | { get?: (k: string) => string | null }
+    | Record<string, string>
+    | undefined;
+  const raw =
+    typeof h?.get === "function" ? h.get("retry-after") : (h as Record<string, string>)?.["retry-after"];
+  const secs = raw ? Number(raw) : NaN;
+  return Number.isFinite(secs) ? Math.ceil(secs * 1000) : null;
+}
+
+/**
+ * Create a completion, retrying transient 429s. Groq's token bucket refills in
+ * well under a second on this tier, so a short wait usually clears the limit.
+ */
+async function createWithRetry(
+  groq: Groq,
+  params: Parameters<Groq["chat"]["completions"]["create"]>[0],
+  retries = 2,
+) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await groq.chat.completions.create(params);
+    } catch (err) {
+      if (isRateLimit(err) && attempt < retries) {
+        await sleep(Math.min(retryAfterMs(err) ?? 1200, 4000));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
 
 /**
  * Return a ReadableStream of the assistant's reply text. Tool calls are executed
@@ -50,16 +103,16 @@ export async function streamAssistantReply(opts: {
       try {
         for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
           const isLastRound = round === MAX_TOOL_ROUNDS - 1;
-          const stream = await groq.chat.completions.create({
+          const stream = (await createWithRetry(groq, {
             model: groqModel,
             messages: convo as never,
             // On the final permitted round, drop tools so the model must answer.
-            tools: isLastRound ? undefined : assistantTools,
+            tools: isLastRound ? undefined : (assistantTools as never),
             tool_choice: isLastRound ? undefined : "auto",
             temperature: TEMPERATURE,
             max_tokens: MAX_TOKENS,
             stream: true,
-          });
+          } as never)) as unknown as AsyncIterable<StreamChunk>;
 
           // Accumulate any tool calls by index (arguments arrive in fragments).
           const toolCalls = new Map<number, { id: string; name: string; args: string }>();
@@ -112,7 +165,10 @@ export async function streamAssistantReply(opts: {
         }
       } catch (err) {
         log?.error({ err }, "assistant stream error");
-        controller.enqueue(encoder.encode("\n\nSorry, I hit an error. Please try again."));
+        const msg = isRateLimit(err)
+          ? "\n\nI'm being rate-limited right now (the model's free-tier token limit). Please wait a few seconds and try again."
+          : "\n\nSorry, I hit an error. Please try again.";
+        controller.enqueue(encoder.encode(msg));
       } finally {
         controller.close();
       }
