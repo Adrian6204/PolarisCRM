@@ -70,6 +70,17 @@ describe("dispatchTool", () => {
     expect(await dispatchTool("get_client", { clientId: "nope" })).toEqual({ error: "Client not found" });
   });
 
+  it("strips null optional args (models fill unused optionals with null)", async () => {
+    listClients.mockResolvedValue({ items: [], total: 0 });
+    // Before the fix this threw: Zod .optional() rejects null, and Groq's own
+    // validator rejected non-nullable string params. Nulls must become absent.
+    const out = await dispatchTool("list_clients", { status: null, q: null });
+    expect(out).toMatchObject({ total: 0, clients: [] });
+    const passed = listClients.mock.calls[0][0];
+    expect(passed.status).toBeUndefined();
+    expect(passed.q).toBeUndefined();
+  });
+
   it("returns an error for an unknown tool", async () => {
     expect(await dispatchTool("do_something_bad", {})).toMatchObject({ error: expect.stringContaining("unknown tool") });
   });

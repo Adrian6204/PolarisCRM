@@ -16,12 +16,14 @@ import { listActivitiesQuerySchema } from "@/features/activities/schema";
  * Read-only tools the in-app assistant can call. Each is a thin wrapper over an
  * existing feature service, so the assistant sees exactly the data the web app
  * would show the same (authenticated) user. Nothing here writes. Outputs are
- * deliberately trimmed to the fields the model needs, to keep token cost and
- * latency down.
+ * trimmed to the fields the model needs, to keep token cost and latency down.
  *
- * The specs use the OpenAI/Groq function-calling shape. `dispatchTool` runs the
- * named tool with the model-supplied args and returns a compact JS value that
- * the caller serializes back into the conversation.
+ * IMPORTANT: every OPTIONAL parameter is declared nullable (`["string","null"]`).
+ * gpt-oss and similar models fill unused optionals with `null`, and Groq
+ * validates tool-call arguments against this schema *server-side* — a plain
+ * `"string"` type there makes it reject the whole call with a 400. Declaring
+ * null keeps those calls valid; `dispatchTool` then strips nulls before the
+ * feature Zod schemas (which accept `undefined`, not `null`) run.
  */
 export type ToolSpec = {
   type: "function";
@@ -32,8 +34,17 @@ export type ToolSpec = {
   };
 };
 
-const str = (description: string) => ({ type: "string", description });
-const num = (description: string) => ({ type: "number", description });
+/** Required string param (never null). */
+const req = (description: string) => ({ type: "string", description });
+/** Optional param — nullable so the model may emit null for "unused". */
+const opt = (description: string) => ({ type: ["string", "null"], description });
+const optNum = (description: string) => ({ type: ["number", "null"], description });
+/** Optional enum param — nullable, with null added to the allowed set. */
+const optEnum = (values: readonly string[], description: string) => ({
+  type: ["string", "null"],
+  enum: [...values, null],
+  description,
+});
 
 export const assistantTools: ToolSpec[] = [
   {
@@ -44,7 +55,7 @@ export const assistantTools: ToolSpec[] = [
         "Fuzzy search across clients, contacts, projects, and deals by name. Use this first when the user names an entity but you don't have its id.",
       parameters: {
         type: "object",
-        properties: { query: str("The search term, e.g. a client or person name.") },
+        properties: { query: req("The search term, e.g. a client or person name.") },
         required: ["query"],
       },
     },
@@ -57,8 +68,8 @@ export const assistantTools: ToolSpec[] = [
       parameters: {
         type: "object",
         properties: {
-          status: { type: "string", enum: ["active", "past", "prospect"], description: "Filter by client status." },
-          q: str("Case-insensitive name search."),
+          status: optEnum(["active", "past", "prospect"], "Filter by client status."),
+          q: opt("Case-insensitive name search."),
         },
       },
     },
@@ -70,7 +81,7 @@ export const assistantTools: ToolSpec[] = [
       description: "Fetch one client with its contacts. Requires the client id (use search_crm to find it).",
       parameters: {
         type: "object",
-        properties: { clientId: str("The client id.") },
+        properties: { clientId: req("The client id.") },
         required: ["clientId"],
       },
     },
@@ -80,10 +91,10 @@ export const assistantTools: ToolSpec[] = [
     function: {
       name: "get_client_timeline",
       description:
-        "The recent activity + notes history for a client (calls, emails, meetings, notes), newest first. Use to summarize what's been happening with an account.",
+        "The recent activity + notes history for a client (calls, emails, meetings, notes), newest first. Use to summarize what's happening with an account.",
       parameters: {
         type: "object",
-        properties: { clientId: str("The client id."), limit: num("Max events (default 20).") },
+        properties: { clientId: req("The client id."), limit: optNum("Max events (default 20).") },
         required: ["clientId"],
       },
     },
@@ -96,14 +107,10 @@ export const assistantTools: ToolSpec[] = [
       parameters: {
         type: "object",
         properties: {
-          clientId: str("Filter to a client's projects."),
-          status: { type: "string", enum: ["active", "on_hold", "completed", "cancelled"], description: "Filter by status." },
-          serviceType: {
-            type: "string",
-            enum: ["web_dev", "seo", "software_dev", "app_dev", "aigc"],
-            description: "Filter by service line.",
-          },
-          q: str("Case-insensitive name search."),
+          clientId: opt("Filter to a client's projects."),
+          status: optEnum(["active", "on_hold", "completed", "cancelled"], "Filter by status."),
+          serviceType: optEnum(["web_dev", "seo", "software_dev", "app_dev", "aigc"], "Filter by service line."),
+          q: opt("Case-insensitive name search."),
         },
       },
     },
@@ -116,14 +123,10 @@ export const assistantTools: ToolSpec[] = [
       parameters: {
         type: "object",
         properties: {
-          projectId: str("Filter to a project's tasks."),
-          ownerId: str("Filter to a user's tasks."),
-          status: {
-            type: "string",
-            enum: ["not_started", "in_progress", "review", "done"],
-            description: "Filter by status.",
-          },
-          q: str("Case-insensitive title search."),
+          projectId: opt("Filter to a project's tasks."),
+          ownerId: opt("Filter to a user's tasks."),
+          status: optEnum(["not_started", "in_progress", "review", "done"], "Filter by status."),
+          q: opt("Case-insensitive title search."),
         },
       },
     },
@@ -136,8 +139,8 @@ export const assistantTools: ToolSpec[] = [
       parameters: {
         type: "object",
         properties: {
-          clientId: str("Filter to a client's deals."),
-          q: str("Case-insensitive title search."),
+          clientId: opt("Filter to a client's deals."),
+          q: opt("Case-insensitive title search."),
         },
       },
     },
@@ -150,7 +153,7 @@ export const assistantTools: ToolSpec[] = [
         "Active retainer engagements whose renewal date falls within the next N days, soonest first. The 'what needs attention' report.",
       parameters: {
         type: "object",
-        properties: { withinDays: num("Lookahead window in days (default 30).") },
+        properties: { withinDays: optNum("Lookahead window in days (default 30).") },
       },
     },
   },
@@ -160,6 +163,10 @@ export const assistantTools: ToolSpec[] = [
 const PAGE = { page: 1, pageSize: 15 } as const;
 
 type Args = Record<string, unknown>;
+
+/** Null / empty-string / undefined -> undefined, so the Zod `.optional()`
+ *  filters (which reject null) accept "not provided". */
+const nn = (v: unknown): unknown => (v === null || v === "" || v === undefined ? undefined : v);
 
 /**
  * Run a tool by name with the model-supplied args. Unknown tools and bad args
@@ -179,7 +186,7 @@ export async function dispatchTool(name: string, args: Args): Promise<unknown> {
         }));
       }
       case "list_clients": {
-        const q = listClientsQuerySchema.parse({ ...PAGE, status: args.status, q: args.q });
+        const q = listClientsQuerySchema.parse({ ...PAGE, status: nn(args.status), q: nn(args.q) });
         const { items, total } = await listClients(q);
         return { total, clients: items.map((c) => ({ id: c.id, name: c.name, status: c.status, industry: c.industry })) };
       }
@@ -208,10 +215,10 @@ export async function dispatchTool(name: string, args: Args): Promise<unknown> {
       case "list_projects": {
         const q = listProjectsQuerySchema.parse({
           ...PAGE,
-          clientId: args.clientId,
-          status: args.status,
-          serviceType: args.serviceType,
-          q: args.q,
+          clientId: nn(args.clientId),
+          status: nn(args.status),
+          serviceType: nn(args.serviceType),
+          q: nn(args.q),
         });
         const { items, total } = await listProjects(q);
         return {
@@ -229,10 +236,10 @@ export async function dispatchTool(name: string, args: Args): Promise<unknown> {
       case "list_deliverables": {
         const q = listDeliverablesQuerySchema.parse({
           ...PAGE,
-          projectId: args.projectId,
-          ownerId: args.ownerId,
-          status: args.status,
-          q: args.q,
+          projectId: nn(args.projectId),
+          ownerId: nn(args.ownerId),
+          status: nn(args.status),
+          q: nn(args.q),
         });
         const { items, total } = await listDeliverables(q);
         return {
@@ -248,7 +255,7 @@ export async function dispatchTool(name: string, args: Args): Promise<unknown> {
         };
       }
       case "list_deals": {
-        const q = listDealsQuerySchema.parse({ ...PAGE, clientId: args.clientId, q: args.q });
+        const q = listDealsQuerySchema.parse({ ...PAGE, clientId: nn(args.clientId), q: nn(args.q) });
         const { items, total } = await listDeals(q);
         return {
           total,
@@ -264,7 +271,7 @@ export async function dispatchTool(name: string, args: Args): Promise<unknown> {
       }
       case "list_activities": {
         const clientId = String(args.clientId ?? "");
-        const q = listActivitiesQuerySchema.parse({ ...PAGE, type: args.type, projectId: args.projectId });
+        const q = listActivitiesQuerySchema.parse({ ...PAGE, type: nn(args.type), projectId: nn(args.projectId) });
         const { items, total } = await listActivities(clientId, q);
         return {
           total,
@@ -286,7 +293,6 @@ export async function dispatchTool(name: string, args: Args): Promise<unknown> {
         return { error: `unknown tool: ${name}` };
     }
   } catch (err) {
-    // Return the message so the model can react (e.g. "client not found").
     return { error: err instanceof Error ? err.message : "tool failed" };
   }
 }
