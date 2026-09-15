@@ -5,6 +5,8 @@ import { UserMenu } from "./user-menu";
 import { CommandPalette, CommandPaletteButton } from "./command-palette";
 import { NotificationBell } from "./notification-bell";
 import { WelcomeDialog } from "./welcome-dialog";
+import { AssistantWidget } from "./assistant/assistant-widget";
+import { hasAssistant } from "@/lib/env";
 
 /**
  * Authenticated app shell: persistent sidebar (desktop) / compact nav (mobile),
@@ -40,6 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+      {hasAssistant && <AssistantWidget />}
     </div>
   );
 }
